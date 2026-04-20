@@ -214,10 +214,13 @@ def run_surveillance() -> None:
         transcriber.close()
         cleanup_all_chunks()
 
-        # Mettre à jour les stats quota dans l'archiveur avant la sauvegarde finale
-        from quota_monitor import _session_requests, _session_audio_minutes
-        archiver.update_quota_stats(_session_requests, _session_audio_minutes)
-        archiver.save_session(duration)
+        # Sauvegarde finale du Gist — exécutée même en cas d'annulation ou d'erreur
+        try:
+            from quota_monitor import _session_requests, _session_audio_minutes
+            archiver.update_quota_stats(_session_requests, _session_audio_minutes)
+            archiver.save_session(duration)
+        except Exception as exc:
+            logger.error(f"Échec de la sauvegarde finale Gist : {exc}")
 
         send_shutdown_notification(
             duration_seconds=duration,

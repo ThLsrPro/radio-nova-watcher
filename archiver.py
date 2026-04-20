@@ -4,7 +4,7 @@ archiver.py — Archivage des sessions sur GitHub Gist (privé).
 Fonctionnement :
   - Au démarrage : cherche ou crée un Gist "radio-nova-watcher-data"
   - Pendant la session : accumule transcriptions et détections en mémoire
-  - Toutes les 10 minutes : pousse les données vers le Gist
+  - Toutes les 2 minutes : pousse les données vers le Gist
   - En fin de session : push final + mise à jour des stats agrégées
 
 Si GIST_ENABLED=false ou si GIST_TOKEN est absent : mode no-op silencieux.
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 GIST_API = "https://api.github.com/gists"
 GIST_DESCRIPTION = "radio-nova-watcher-data"
-PERIODIC_SAVE_INTERVAL = 600  # 10 minutes en secondes
+PERIODIC_SAVE_INTERVAL = 120  # 2 minutes en secondes (~8 transcriptions de 15s)
 
 
 # ── Structures de données ─────────────────────────────────────────────────────

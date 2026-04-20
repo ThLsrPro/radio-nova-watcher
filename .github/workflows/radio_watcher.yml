@@ -49,7 +49,7 @@ jobs:
         run: python main.py
 
       - name: Mettre à jour le dashboard GitHub Pages
-        if: ${{ env.GIST_ENABLED == 'true' && env.GIST_TOKEN != '' }}
+        if: always() && env.GIST_ENABLED == 'true' && env.GIST_TOKEN != ''
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           GIST_ENABLED: ${{ secrets.GIST_ENABLED }}
@@ -73,7 +73,7 @@ jobs:
           fi
 
       - name: Commiter et pousser le dashboard mis à jour
-        if: ${{ env.GIST_ENABLED == 'true' && env.GIST_TOKEN != '' }}
+        if: always() && env.GIST_ENABLED == 'true' && env.GIST_TOKEN != ''
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
