@@ -3,127 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radio Nova Watcher 🎙️</title>
+<title>Radio Nova Watcher</title>
 <style>
-/* ── Variables ──────────────────────────────────────────────────────────── */
+/* ── Variables ───────────────────────────────────────────────────────────── */
 :root {
-  --bg-primary:#f5f5f5; --bg-secondary:#ffffff; --bg-card:#ffffff;
-  --text-primary:#1a1a1a; --text-secondary:#666666;
-  --accent:#E8003D; --accent-hover:#c4002e;
-  --border:#e0e0e0; --success:#00a844; --warning:#e65100;
-  --shadow:0 2px 12px rgba(0,0,0,.08);
-  --shadow-hover:0 6px 20px rgba(0,0,0,.13);
-  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  --mono:'Courier New',Courier,monospace;
-  --radius:16px; --radius-sm:8px;
-  transition:background .3s,color .3s,border-color .3s,box-shadow .3s;
+  --bg-primary:   #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-card:      #ffffff;
+  --text-primary: #1c1c1e;
+  --text-secondary: #6e6e73;
+  --accent:   #E8003D;
+  --border:   #e8e8ed;
+  --success:  #34c759;
+  --warning:  #ff9f0a;
+  --shadow:   rgba(0,0,0,.08);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  --mono: "SF Mono", "Monaco", "Courier New", monospace;
+  --radius: 12px;
+  --radius-sm: 8px;
 }
 [data-theme="dark"] {
-  --bg-primary:#0d0d0d; --bg-secondary:#1a1a1a; --bg-card:#222222;
-  --text-primary:#ffffff; --text-secondary:#aaaaaa;
-  --accent:#E8003D; --accent-hover:#ff1a52;
-  --border:#333333; --success:#00c853; --warning:#ff9800;
-  --shadow:0 2px 12px rgba(0,0,0,.4);
-  --shadow-hover:0 6px 24px rgba(0,0,0,.6);
+  --bg-primary:   #1c1c1e;
+  --bg-secondary: #2c2c2e;
+  --bg-card:      #2c2c2e;
+  --text-primary: #f5f5f7;
+  --text-secondary: #98989d;
+  --accent:  #ff375f;
+  --border:  #3a3a3c;
+  --success: #32d74b;
+  --warning: #ffd60a;
+  --shadow:  rgba(0,0,0,.3);
 }
 
-/* ── Reset ──────────────────────────────────────────────────────────────── */
-*{box-sizing:border-box;margin:0;padding:0}
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{
   background:var(--bg-primary);color:var(--text-primary);
   font-family:var(--font);font-size:15px;line-height:1.6;
-  transition:background .3s,color .3s;
-  min-height:100vh;
+  transition:background .3s,color .3s;min-height:100vh;
 }
-a{color:var(--accent);text-decoration:none}
-a:hover{text-decoration:underline}
+a{color:var(--text-secondary);text-decoration:none}
+a:hover{color:var(--text-primary)}
 button{cursor:pointer;font-family:inherit}
 
-/* ── Layout ─────────────────────────────────────────────────────────────── */
-.container{max-width:940px;margin:0 auto;padding:0 16px 80px}
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.container{max-width:920px;margin:0 auto;padding:0 20px 80px}
 
-/* ── Header ─────────────────────────────────────────────────────────────── */
+/* ── Header ──────────────────────────────────────────────────────────────── */
 header{
   background:var(--bg-secondary);
-  border-bottom:3px solid var(--accent);
-  box-shadow:var(--shadow);
-  padding:14px 0;
+  border-bottom:1px solid var(--border);
+  padding:12px 0;
   position:sticky;top:0;z-index:100;
-  transition:background .3s,box-shadow .3s;
+  transition:background .3s;
 }
 .header-inner{
-  max-width:940px;margin:0 auto;padding:0 16px;
-  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  max-width:920px;margin:0 auto;padding:0 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
 }
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
-.brand-logo{flex-shrink:0;width:40px;height:40px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-logo{flex-shrink:0;width:30px;height:30px}
 .brand-text h1{
-  font-size:1.15rem;font-weight:800;white-space:nowrap;
-  background:linear-gradient(90deg,var(--accent),#ff6b6b);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
+  font-size:.98rem;font-weight:600;color:var(--text-primary);
+  white-space:nowrap;letter-spacing:-.01em;
 }
-.brand-text p{font-size:.72rem;color:var(--text-secondary);margin-top:1px}
-.header-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.brand-text p{font-size:.7rem;color:var(--text-secondary);margin-top:1px}
+.header-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+
 .session-badge{
-  display:flex;align-items:center;gap:6px;
-  font-size:.8rem;font-weight:600;
-  padding:5px 12px;border-radius:20px;
-  background:var(--bg-card);border:1px solid var(--border);
+  display:flex;align-items:center;gap:5px;
+  font-size:.73rem;font-weight:500;
+  padding:4px 10px;border-radius:20px;
+  background:var(--bg-primary);border:1px solid var(--border);
   color:var(--text-secondary);
 }
 .session-badge.live{
-  background:rgba(232,0,61,.1);border-color:rgba(232,0,61,.3);
+  background:rgba(232,0,61,.07);border-color:rgba(232,0,61,.2);
   color:var(--accent);
 }
 .live-pulse{
-  width:8px;height:8px;border-radius:50%;background:var(--accent);
+  width:6px;height:6px;border-radius:50%;background:var(--accent);
   animation:pulse-dot 1.4s infinite;
 }
-@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
-.btn-theme{
-  background:var(--bg-card);border:1px solid var(--border);
-  color:var(--text-primary);border-radius:50%;
-  width:36px;height:36px;font-size:1rem;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .2s,border-color .2s,transform .2s;
-  flex-shrink:0;
-}
-.btn-theme:hover{border-color:var(--accent);transform:rotate(15deg)}
-.btn-refresh{
-  background:var(--accent);color:#fff;border:none;
-  border-radius:var(--radius-sm);padding:7px 14px;
-  font-size:.82rem;font-weight:700;
-  transition:background .2s,transform .15s;
-  flex-shrink:0;
-}
-.btn-refresh:hover{background:var(--accent-hover);transform:scale(1.04)}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.65)}}
 
-/* ── Navbar ─────────────────────────────────────────────────────────────── */
+.btn-theme{
+  background:none;border:none;color:var(--text-secondary);
+  width:30px;height:30px;font-size:.88rem;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:6px;transition:background .15s,color .15s;
+}
+.btn-theme:hover{background:var(--bg-primary);color:var(--text-primary)}
+
+.btn-refresh{
+  background:none;color:var(--accent);border:1px solid var(--accent);
+  border-radius:6px;padding:4px 11px;
+  font-size:.76rem;font-weight:500;
+  transition:background .15s;
+}
+.btn-refresh:hover{background:rgba(232,0,61,.05)}
+
+/* ── Navbar ──────────────────────────────────────────────────────────────── */
 nav{
   background:var(--bg-secondary);
   border-bottom:1px solid var(--border);
-  position:sticky;top:71px;z-index:90;
+  position:sticky;top:55px;z-index:90;
   overflow-x:auto;white-space:nowrap;
   transition:background .3s;
 }
 nav::-webkit-scrollbar{height:0}
 .nav-inner{
-  max-width:940px;margin:0 auto;padding:0 16px;
+  max-width:920px;margin:0 auto;padding:0 20px;
   display:flex;gap:0;
 }
 .nav-link{
-  padding:10px 16px;font-size:.83rem;font-weight:600;
+  padding:9px 14px;font-size:.81rem;font-weight:500;
   color:var(--text-secondary);border:none;background:none;
   border-bottom:2px solid transparent;
-  transition:color .2s,border-color .2s;
+  transition:color .15s,border-color .15s;
 }
-.nav-link:hover,.nav-link.active{color:var(--accent);border-bottom-color:var(--accent)}
+.nav-link:hover{color:var(--text-primary)}
+.nav-link.active{color:var(--text-primary);border-bottom-color:var(--accent)}
 
-/* ── Skeleton ───────────────────────────────────────────────────────────── */
+/* ── Skeleton ────────────────────────────────────────────────────────────── */
 .skeleton{
-  background:linear-gradient(90deg,var(--border) 25%,var(--bg-card) 50%,var(--border) 75%);
+  background:linear-gradient(90deg,var(--border) 25%,var(--bg-secondary) 50%,var(--border) 75%);
   background-size:200% 100%;
   animation:shimmer 1.5s infinite;
   border-radius:var(--radius-sm);
@@ -131,280 +136,276 @@ nav::-webkit-scrollbar{height:0}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .skeleton-card{
   background:var(--bg-card);border:1px solid var(--border);
-  border-radius:var(--radius);padding:20px;margin-bottom:12px;
-  box-shadow:var(--shadow);
+  border-radius:var(--radius);padding:20px;margin-bottom:10px;
 }
-.sk-line{height:14px;margin-bottom:10px}
-.sk-line-short{height:14px;width:60%;margin-bottom:10px}
-.sk-circle{width:52px;height:52px;border-radius:50%;margin-bottom:10px}
+.sk-line{height:12px;margin-bottom:10px}
+.sk-line-short{height:12px;width:55%;margin-bottom:10px}
+.sk-circle{width:38px;height:38px;border-radius:50%;margin-bottom:12px}
 
-/* ── Cards ──────────────────────────────────────────────────────────────── */
+/* ── Cards ───────────────────────────────────────────────────────────────── */
 .card{
   background:var(--bg-card);border:1px solid var(--border);
   border-radius:var(--radius);padding:20px;
-  box-shadow:var(--shadow);
-  transition:transform .2s,box-shadow .2s,background .3s,border-color .3s;
+  box-shadow:0 2px 8px var(--shadow);
+  transition:background .3s,border-color .3s,box-shadow .2s;
 }
-.card:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover)}
-.card-title{
-  font-size:.72rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.09em;color:var(--text-secondary);margin-bottom:16px;
-}
+.card:hover{box-shadow:0 4px 16px var(--shadow)}
 
-/* ── Section titles ─────────────────────────────────────────────────────── */
+/* ── Section titles ──────────────────────────────────────────────────────── */
 .section-title{
-  font-size:1rem;font-weight:700;
-  margin:32px 0 14px;padding-bottom:8px;
-  border-bottom:2px solid var(--border);
-  display:flex;align-items:center;gap:8px;
+  font-size:.76rem;font-weight:600;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--text-secondary);
+  margin:36px 0 12px;
 }
 
-/* ── Stat cards ─────────────────────────────────────────────────────────── */
+/* ── Stat cards ──────────────────────────────────────────────────────────── */
 .stats-row{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:12px;margin-bottom:0;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+  gap:10px;
 }
 .stat-card{
   background:var(--bg-card);border:1px solid var(--border);
-  border-radius:var(--radius);padding:20px 16px;
-  text-align:center;box-shadow:var(--shadow);
-  transition:transform .2s,box-shadow .2s,background .3s;
+  border-radius:var(--radius);padding:18px 16px;
+  box-shadow:0 2px 8px var(--shadow);
+  transition:box-shadow .2s,background .3s;
 }
-.stat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover)}
-.stat-icon{font-size:2em;line-height:1;margin-bottom:8px}
+.stat-card:hover{box-shadow:0 4px 16px var(--shadow)}
+.stat-icon{
+  font-size:.7rem;font-weight:600;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--text-secondary);
+  margin-bottom:8px;
+}
 .stat-value{
-  font-size:2.1rem;font-weight:800;
-  color:var(--accent);line-height:1.1;font-variant-numeric:tabular-nums;
+  font-size:2rem;font-weight:700;
+  color:var(--text-primary);line-height:1.1;
+  font-variant-numeric:tabular-nums;letter-spacing:-.025em;
 }
-.stat-label{font-size:.75rem;color:var(--text-secondary);margin-top:4px}
+.stat-label{font-size:.7rem;color:var(--text-secondary);margin-top:3px}
 
-/* ── Progress bar ───────────────────────────────────────────────────────── */
+/* ── Progress bar ────────────────────────────────────────────────────────── */
 .progress-wrap{margin-top:10px}
-.progress-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-secondary);margin-bottom:4px}
-.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-label{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-secondary);margin-bottom:4px}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
 .progress-fill{
-  height:100%;border-radius:3px;
-  background:linear-gradient(90deg,var(--accent),#ff6b6b);
-  width:0;transition:width 1.2s cubic-bezier(.4,0,.2,1);
+  height:100%;border-radius:2px;
+  background:linear-gradient(90deg,#c7c7cc 0%,#8e8e93 75%,var(--accent) 100%);
+  width:0;transition:width 1s cubic-bezier(.4,0,.2,1);
 }
 
-/* ── Chart bars ─────────────────────────────────────────────────────────── */
+/* ── Chart bars ──────────────────────────────────────────────────────────── */
 .chart-wrap{overflow-x:auto;padding-bottom:4px}
-.chart{display:flex;align-items:flex-end;gap:8px;height:130px;min-width:280px;padding-top:14px}
-.bar-group{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:36px}
-.bars{display:flex;gap:3px;align-items:flex-end;height:100px}
+.chart{display:flex;align-items:flex-end;gap:8px;height:120px;min-width:260px;padding-top:16px}
+.bar-group{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:32px}
+.bars{display:flex;gap:3px;align-items:flex-end;height:88px}
 .bar{
-  width:16px;border-radius:4px 4px 0 0;min-height:3px;
-  transition:height 1.2s cubic-bezier(.4,0,.2,1);position:relative;
+  width:14px;border-radius:3px 3px 0 0;min-height:2px;
+  transition:height 1s cubic-bezier(.4,0,.2,1);position:relative;
 }
 .bar-chunks{background:var(--border)}
-.bar-detections{background:linear-gradient(180deg,#ff6b6b,var(--accent))}
+.bar-detections{background:var(--text-secondary);opacity:.65}
 .bar-val{
-  position:absolute;top:-16px;left:50%;transform:translateX(-50%);
-  font-size:.6rem;color:var(--text-secondary);white-space:nowrap;
-  opacity:0;transition:opacity .3s .8s;
+  position:absolute;top:-15px;left:50%;transform:translateX(-50%);
+  font-size:.58rem;color:var(--text-secondary);white-space:nowrap;
+  opacity:0;transition:opacity .15s;
 }
 .bar:hover .bar-val{opacity:1}
-.bar-label{font-size:.65rem;color:var(--text-secondary);text-align:center;max-width:40px;overflow:hidden;text-overflow:ellipsis}
-.chart-legend{display:flex;gap:16px;margin-top:10px;font-size:.75rem;color:var(--text-secondary)}
-.legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:middle}
+.bar-label{font-size:.62rem;color:var(--text-secondary);text-align:center;max-width:36px;overflow:hidden;text-overflow:ellipsis}
+.chart-legend{display:flex;gap:14px;margin-top:12px;font-size:.72rem;color:var(--text-secondary)}
+.legend-dot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
 
-/* ── Timeline détections ────────────────────────────────────────────────── */
-.timeline{position:relative;padding-left:36px}
+/* ── Timeline détections ─────────────────────────────────────────────────── */
+.timeline{position:relative;padding-left:28px}
 .timeline::before{
-  content:'';position:absolute;left:14px;top:0;bottom:0;
-  width:2px;background:linear-gradient(180deg,var(--accent),transparent);
+  content:'';position:absolute;left:10px;top:8px;bottom:0;
+  width:1px;background:var(--border);
 }
 .det-entry{
-  position:relative;margin-bottom:16px;
-  opacity:0;transform:translateY(12px);
-  animation:fade-in-up .4s forwards;
+  position:relative;margin-bottom:12px;
+  opacity:0;animation:fade-in .2s forwards;
 }
-.det-entry:nth-child(1){animation-delay:.05s}
-.det-entry:nth-child(2){animation-delay:.1s}
-.det-entry:nth-child(3){animation-delay:.15s}
-.det-entry:nth-child(4){animation-delay:.2s}
-.det-entry:nth-child(5){animation-delay:.25s}
-@keyframes fade-in-up{to{opacity:1;transform:none}}
-.det-icon{
-  position:absolute;left:-30px;top:14px;
-  width:22px;height:22px;border-radius:50%;
-  background:var(--accent);display:flex;align-items:center;justify-content:center;
-  font-size:.7rem;z-index:1;box-shadow:0 0 0 3px var(--bg-primary);
+.det-entry:nth-child(1){animation-delay:.04s}
+.det-entry:nth-child(2){animation-delay:.08s}
+.det-entry:nth-child(3){animation-delay:.12s}
+.det-entry:nth-child(4){animation-delay:.16s}
+.det-entry:nth-child(5){animation-delay:.20s}
+@keyframes fade-in{to{opacity:1}}
+
+.det-dot{
+  position:absolute;left:-22px;top:17px;
+  width:10px;height:10px;border-radius:50%;
+  background:var(--border);border:2px solid var(--bg-primary);
+  z-index:1;
 }
+.det-dot.confirmed{background:var(--accent)}
+
 .det-card{
-  background:var(--bg-card);border:1px solid rgba(232,0,61,.2);
-  border-left:3px solid var(--accent);
-  border-radius:var(--radius-sm);padding:14px 16px;
-  box-shadow:var(--shadow);transition:background .3s;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:13px 15px;
+  box-shadow:0 1px 4px var(--shadow);
+  transition:background .3s;
 }
-.det-header{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-.det-time{font-family:var(--mono);font-size:.8rem;color:var(--text-secondary)}
-.det-session-label{font-size:.72rem;color:var(--text-secondary)}
-.det-text{font-size:.9rem;margin-bottom:10px;font-weight:500}
-.det-text mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 2px}
-.confidence-wrap{margin-bottom:4px}
+.det-header{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.det-time{font-family:var(--mono);font-size:.75rem;color:var(--text-secondary)}
+.det-session-label{font-size:.7rem;color:var(--text-secondary)}
+.det-text{font-size:.88rem;margin-bottom:10px;color:var(--text-primary)}
+.det-text mark{background:rgba(255,200,0,.3);color:inherit;border-radius:2px;padding:0 2px}
 .confidence-row{display:flex;align-items:center;gap:10px;margin-bottom:4px}
-.conf-bar-outer{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden}
-.conf-bar-inner{height:100%;border-radius:4px;width:0;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
-.conf-label{font-size:.75rem;color:var(--text-secondary);min-width:50px;text-align:right}
+.conf-bar-outer{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.conf-bar-inner{height:100%;border-radius:2px;width:0;transition:width 1s cubic-bezier(.4,0,.2,1)}
 .badge-conf{
-  font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:12px;
-  border:1px solid;margin-left:auto;white-space:nowrap;
+  font-size:.68rem;font-weight:600;padding:2px 7px;
+  border-radius:10px;border:1px solid;white-space:nowrap;
 }
-.badge-high{color:var(--success);background:rgba(0,200,83,.1);border-color:rgba(0,200,83,.3)}
-.badge-mid{color:var(--warning);background:rgba(255,152,0,.1);border-color:rgba(255,152,0,.3)}
-.badge-low{color:var(--text-secondary);background:var(--border);border-color:var(--border)}
+.badge-high{color:var(--success);background:rgba(52,199,89,.08);border-color:rgba(52,199,89,.25)}
+.badge-mid{color:var(--warning);background:rgba(255,159,10,.08);border-color:rgba(255,159,10,.25)}
+.badge-low{color:var(--text-secondary);background:var(--bg-primary);border-color:var(--border)}
 .btn-ctx{
-  font-size:.73rem;color:var(--accent);background:none;border:none;
-  padding:0;margin-top:6px;display:flex;align-items:center;gap:4px;
+  font-size:.71rem;color:var(--text-secondary);background:none;border:none;
+  padding:0;margin-top:8px;display:flex;align-items:center;gap:4px;
 }
-.btn-ctx:hover{text-decoration:underline}
+.btn-ctx:hover{color:var(--text-primary)}
 .det-ctx{
   display:none;margin-top:8px;
   background:var(--bg-primary);border-radius:var(--radius-sm);
-  padding:10px 12px;font-size:.8rem;color:var(--text-secondary);
+  padding:10px 12px;font-size:.77rem;color:var(--text-secondary);
   font-family:var(--mono);white-space:pre-wrap;word-break:break-word;
   border:1px solid var(--border);
-  transition:background .3s;
 }
 .det-ctx.open{display:block}
 
-/* ── Sessions ───────────────────────────────────────────────────────────── */
+/* ── Sessions ────────────────────────────────────────────────────────────── */
 .session-item{
   border:1px solid var(--border);border-radius:var(--radius);
-  margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);
-  transition:box-shadow .2s,border-color .2s;
+  margin-bottom:8px;overflow:hidden;
+  box-shadow:0 1px 4px var(--shadow);
+  transition:border-color .15s;
 }
-.session-item:hover{border-color:var(--accent);box-shadow:var(--shadow-hover)}
+.session-item:hover{border-color:#c7c7cc}
+[data-theme="dark"] .session-item:hover{border-color:#636366}
 .session-head{
   display:flex;align-items:center;justify-content:space-between;
-  flex-wrap:wrap;gap:8px;padding:14px 18px;
+  flex-wrap:wrap;gap:8px;padding:13px 16px;
   background:var(--bg-card);cursor:pointer;
   user-select:none;transition:background .15s;
 }
-.session-head:hover{background:var(--bg-secondary)}
+.session-head:hover{background:var(--bg-primary)}
 .session-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.session-date{font-weight:700;font-size:.95rem}
-.session-info{font-size:.8rem;color:var(--text-secondary)}
-.badge{font-size:.71rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid}
-.badge-detected{color:var(--success);background:rgba(0,200,83,.1);border-color:rgba(0,200,83,.3)}
-.badge-nothing{color:var(--text-secondary);background:var(--border);border-color:var(--border)}
-.chevron{color:var(--text-secondary);font-size:.85rem;transition:transform .25s}
+.session-date{font-weight:600;font-size:.9rem}
+.session-info{font-size:.77rem;color:var(--text-secondary)}
+.badge{font-size:.67rem;font-weight:600;padding:2px 8px;border-radius:10px;border:1px solid}
+.badge-detected{color:var(--success);background:rgba(52,199,89,.08);border-color:rgba(52,199,89,.25)}
+.badge-nothing{color:var(--text-secondary);background:var(--bg-primary);border-color:var(--border)}
+.chevron{color:var(--text-secondary);font-size:.72rem;transition:transform .2s}
 .chevron.open{transform:rotate(180deg)}
-.session-body{display:none;padding:16px 18px;border-top:1px solid var(--border)}
+.session-body{display:none;padding:14px 16px;border-top:1px solid var(--border)}
 .session-body.open{display:block}
-.session-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.session-actions{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .btn-sm{
   background:var(--bg-primary);border:1px solid var(--border);
-  color:var(--text-primary);border-radius:var(--radius-sm);
-  padding:6px 13px;font-size:.79rem;font-weight:600;
-  transition:border-color .15s,background .15s;
+  color:var(--text-secondary);border-radius:6px;
+  padding:5px 11px;font-size:.75rem;font-weight:500;
+  transition:border-color .15s,color .15s,background .15s;
 }
-.btn-sm:hover,.btn-sm.active{border-color:var(--accent);color:var(--accent);background:rgba(232,0,61,.06)}
+.btn-sm:hover,.btn-sm.active{border-color:var(--accent);color:var(--accent);background:rgba(232,0,61,.04)}
 
-/* ── Transcription ──────────────────────────────────────────────────────── */
-.search-wrap{position:relative;margin-bottom:10px}
+/* ── Transcription ───────────────────────────────────────────────────────── */
+.search-wrap{position:relative;margin-bottom:8px}
 .search-box{
-  width:100%;padding:9px 36px 9px 12px;
+  width:100%;padding:7px 30px 7px 10px;
   background:var(--bg-primary);border:1px solid var(--border);
-  border-radius:var(--radius-sm);color:var(--text-primary);font-size:.85rem;
-  transition:border-color .2s,background .3s;
+  border-radius:var(--radius-sm);color:var(--text-primary);font-size:.81rem;
+  transition:border-color .15s;
 }
 .search-box:focus{outline:none;border-color:var(--accent)}
 .search-clear{
-  position:absolute;right:10px;top:50%;transform:translateY(-50%);
-  background:none;border:none;color:var(--text-secondary);font-size:.85rem;
-  display:none;
+  position:absolute;right:9px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--text-secondary);font-size:.75rem;display:none;
 }
-.transcript-list{max-height:320px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-.transcript-list::-webkit-scrollbar{width:4px}
+.transcript-list{max-height:300px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.transcript-list::-webkit-scrollbar{width:3px}
 .transcript-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 .tr-entry{
-  display:flex;gap:10px;padding:6px 0;
-  border-bottom:1px solid var(--border);font-size:.82rem;
-  font-family:var(--mono);background:var(--bg-primary);
-  transition:background .15s;
+  display:flex;gap:10px;padding:5px 0;
+  border-bottom:1px solid var(--border);font-size:.79rem;
+  font-family:var(--mono);
 }
 .tr-entry:last-child{border-bottom:none}
-.tr-entry:hover{background:var(--bg-card)}
-.tr-ts{color:var(--text-secondary);flex-shrink:0;width:70px}
-.tr-text{flex:1;word-break:break-word;padding-right:32px;position:relative}
+.tr-ts{color:var(--text-secondary);flex-shrink:0;width:62px}
+.tr-text{flex:1;word-break:break-word;padding-right:28px;position:relative}
 .btn-copy{
   position:absolute;right:0;top:0;
   background:none;border:1px solid var(--border);
-  color:var(--text-secondary);border-radius:4px;
-  padding:1px 6px;font-size:.7rem;opacity:0;
-  transition:opacity .15s,color .15s;
+  color:var(--text-secondary);border-radius:3px;
+  padding:1px 5px;font-size:.64rem;opacity:0;
+  transition:opacity .15s;
 }
 .tr-entry:hover .btn-copy{opacity:1}
-.btn-copy:hover{color:var(--accent);border-color:var(--accent)}
+.btn-copy:hover{color:var(--text-primary)}
 .btn-copy.copied{color:var(--success);border-color:var(--success)}
-mark{background:rgba(255,200,0,.4);color:inherit;border-radius:2px;padding:0 1px}
-[data-theme="dark"] mark{background:rgba(255,200,0,.25)}
+mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
+[data-theme="dark"] mark{background:rgba(255,200,0,.2)}
 .tr-entry.hidden{display:none}
 
-/* ── Empty / Error states ───────────────────────────────────────────────── */
+/* ── Empty / Error ───────────────────────────────────────────────────────── */
 .empty-state{text-align:center;padding:40px 20px}
-.empty-state svg{width:64px;height:64px;margin-bottom:14px;opacity:.35}
-.empty-state p{color:var(--text-secondary);font-size:.9rem}
+.empty-state svg{width:52px;height:52px;margin-bottom:12px;opacity:.22}
+.empty-state p{color:var(--text-secondary);font-size:.84rem}
+
 .error-box{
-  background:rgba(232,0,61,.06);border:1px solid rgba(232,0,61,.2);
-  border-radius:var(--radius);padding:16px 20px;margin-bottom:16px;
+  background:var(--bg-secondary);border:1px solid var(--border);
+  border-radius:var(--radius);padding:13px 18px;margin-bottom:16px;
   display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
 }
-.error-box p{color:var(--accent);font-size:.88rem}
-.btn-retry{background:var(--accent);color:#fff;border:none;
-           border-radius:var(--radius-sm);padding:6px 14px;font-size:.82rem;font-weight:700}
-#loader{display:none;padding:40px 0}
+.error-box p{color:var(--text-secondary);font-size:.83rem}
+.btn-retry{
+  background:none;color:var(--text-secondary);border:1px solid var(--border);
+  border-radius:6px;padding:5px 12px;font-size:.77rem;font-weight:500;
+  transition:border-color .15s,color .15s;
+}
+.btn-retry:hover{border-color:var(--text-primary);color:var(--text-primary)}
+
+#loader{display:none;padding:48px 0}
 .spinner{
-  width:40px;height:40px;border:3px solid var(--border);
-  border-top-color:var(--accent);border-radius:50%;
+  width:28px;height:28px;border:2px solid var(--border);
+  border-top-color:var(--text-secondary);border-radius:50%;
   animation:spin .8s linear infinite;margin:0 auto 14px;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
-#loader p{text-align:center;color:var(--text-secondary);font-size:.88rem}
+#loader p{text-align:center;color:var(--text-secondary);font-size:.84rem}
 
-/* ── Footer ─────────────────────────────────────────────────────────────── */
+/* ── Footer ──────────────────────────────────────────────────────────────── */
 footer{
   margin-top:48px;padding:20px 0;
   border-top:1px solid var(--border);
-  text-align:center;font-size:.78rem;color:var(--text-secondary);
-  transition:border-color .3s;
+  text-align:center;font-size:.72rem;color:var(--text-secondary);
 }
 footer a{color:var(--text-secondary)}
-footer a:hover{color:var(--accent)}
+footer a:hover{color:var(--text-primary)}
 
-/* ── Responsive ─────────────────────────────────────────────────────────── */
+/* ── Responsive ──────────────────────────────────────────────────────────── */
 @media(max-width:520px){
-  .brand-text h1{font-size:1rem}
+  .brand-text h1{font-size:.9rem}
   .stats-row{grid-template-columns:1fr 1fr}
   .stat-value{font-size:1.7rem}
-  .timeline{padding-left:28px}
-  .det-icon{left:-22px;width:18px;height:18px;font-size:.6rem}
-  .timeline::before{left:10px}
-  .nav-link{padding:10px 11px;font-size:.78rem}
-  header{top:0}
-  nav{top:67px}
+  .timeline{padding-left:24px}
+  .det-dot{left:-19px;width:9px;height:9px;top:18px}
+  .timeline::before{left:8px}
+  .nav-link{padding:9px 10px;font-size:.77rem}
+  nav{top:51px}
 }
 </style>
 </head>
 <body>
 
-<!-- ── Header ────────────────────────────────────────────────────────────── -->
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
 <header>
   <div class="header-inner">
     <div class="brand">
-      <svg class="brand-logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <!-- Onde radio -->
-        <path d="M4 20 Q10 8 20 8 Q30 8 36 20" stroke="#E8003D" stroke-width="2.5" stroke-linecap="round" fill="none" opacity=".5"/>
-        <path d="M8 20 Q13 12 20 12 Q27 12 32 20" stroke="#E8003D" stroke-width="2.5" stroke-linecap="round" fill="none" opacity=".75"/>
-        <path d="M12 20 Q15.5 15 20 15 Q24.5 15 28 20" stroke="#E8003D" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-        <!-- Micro -->
-        <rect x="17" y="18" width="6" height="10" rx="3" fill="#E8003D"/>
-        <path d="M14 25c0 3.3 2.7 6 6 6s6-2.7 6-6" stroke="#E8003D" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-        <line x1="20" y1="31" x2="20" y2="34" stroke="#E8003D" stroke-width="1.8" stroke-linecap="round"/>
-        <line x1="17" y1="34" x2="23" y2="34" stroke="#E8003D" stroke-width="1.8" stroke-linecap="round"/>
+      <svg class="brand-logo" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <!-- dot of the "i" — accent color -->
+        <circle cx="15" cy="8" r="3.5" fill="#E8003D" class="logo-dot"/>
+        <!-- stem of the "i" -->
+        <rect x="12.5" y="14" width="5" height="12" rx="2.5" fill="#3a3a3c" class="logo-stem"/>
       </svg>
       <div class="brand-text">
         <h1>Radio Nova Watcher</h1>
@@ -421,21 +422,21 @@ footer a:hover{color:var(--accent)}
   </div>
 </header>
 
-<!-- ── Navbar ─────────────────────────────────────────────────────────────── -->
+<!-- ── Navbar ──────────────────────────────────────────────────────────────── -->
 <nav>
   <div class="nav-inner">
-    <button class="nav-link active" onclick="scrollTo('sec-status')">📊 Statut</button>
-    <button class="nav-link" onclick="scrollTo('sec-chart')">📈 Stats</button>
-    <button class="nav-link" onclick="scrollTo('sec-detections')">🎯 Détections</button>
-    <button class="nav-link" onclick="scrollTo('sec-sessions')">📋 Sessions</button>
+    <button class="nav-link active" onclick="scrollTo('sec-status')">Statut</button>
+    <button class="nav-link" onclick="scrollTo('sec-chart')">Statistiques</button>
+    <button class="nav-link" onclick="scrollTo('sec-detections')">Détections</button>
+    <button class="nav-link" onclick="scrollTo('sec-sessions')">Sessions</button>
   </div>
 </nav>
 
-<!-- ── Content ────────────────────────────────────────────────────────────── -->
+<!-- ── Content ─────────────────────────────────────────────────────────────── -->
 <div class="container">
   <div id="loader">
     <div class="spinner"></div>
-    <p>Chargement des données depuis le Gist…</p>
+    <p>Chargement des données…</p>
   </div>
   <div class="error-box" id="error-box">
     <p id="error-msg"></p>
@@ -445,19 +446,24 @@ footer a:hover{color:var(--accent)}
 </div>
 
 <footer>
-  <p>Radio Nova Watcher — <a href="https://github.com/thlsrpro/radio-nova-watcher" target="_blank">Projet open source</a> &nbsp;·&nbsp; <span id="last-updated"></span></p>
+  <p>Radio Nova Watcher — <a href="https://github.com/thlsrpro/radio-nova-watcher" target="_blank">GitHub</a> &nbsp;·&nbsp; <span id="last-updated"></span></p>
 </footer>
 
 <script>
-// ── Config ───────────────────────────────────────────────────────────────
+// ── Config ────────────────────────────────────────────────────────────────
 const GIST_RAW_URL = "GIST_RAW_URL_PLACEHOLDER";
-const LS_KEY = "rnw_cache";
+const LS_KEY   = "rnw_cache";
 const LS_THEME = "theme";
 
-// ── Thème ────────────────────────────────────────────────────────────────
+// ── Thème ─────────────────────────────────────────────────────────────────
 function applyTheme(t) {
   document.documentElement.setAttribute("data-theme", t);
   document.getElementById("btn-theme").textContent = t === "dark" ? "☀️" : "🌙";
+  // Adapt logo colors to theme
+  const dot  = document.querySelector(".logo-dot");
+  const stem = document.querySelector(".logo-stem");
+  if (dot)  dot.setAttribute("fill",  t === "dark" ? "#ff375f" : "#E8003D");
+  if (stem) stem.setAttribute("fill", t === "dark" ? "#98989d" : "#3a3a3c");
   localStorage.setItem(LS_THEME, t);
 }
 function toggleTheme() {
@@ -465,12 +471,11 @@ function toggleTheme() {
 }
 applyTheme(localStorage.getItem(LS_THEME) ?? "light");
 
-// ── Navigation ───────────────────────────────────────────────────────────
+// ── Navigation ────────────────────────────────────────────────────────────
 function scrollTo(id) {
   const el = document.getElementById(id);
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-// Highlight nav on scroll
 function updateNav() {
   const sections = ["sec-status","sec-chart","sec-detections","sec-sessions"];
   const links = document.querySelectorAll(".nav-link");
@@ -483,7 +488,7 @@ function updateNav() {
 }
 window.addEventListener("scroll", updateNav, { passive: true });
 
-// ── Utilitaires ──────────────────────────────────────────────────────────
+// ── Utilitaires ───────────────────────────────────────────────────────────
 function esc(s) {
   return String(s||"")
     .replace(/&/g,"&amp;").replace(/</g,"&lt;")
@@ -504,13 +509,12 @@ function confColor(c) {
   return "var(--text-secondary)";
 }
 function confBadge(c) {
-  if (c >= 90) return `<span class="badge-conf badge-high">✓ ${c}%</span>`;
-  if (c >= 70) return `<span class="badge-conf badge-mid">~ ${c}%</span>`;
+  if (c >= 90) return `<span class="badge-conf badge-high">${c}%</span>`;
+  if (c >= 70) return `<span class="badge-conf badge-mid">${c}%</span>`;
   return `<span class="badge-conf badge-low">${c}%</span>`;
 }
 function nextSundayLabel() {
-  const now = new Date();
-  const d = new Date(now);
+  const now = new Date(), d = new Date(now);
   d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7));
   return d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
 }
@@ -524,31 +528,30 @@ function hlSearch(text, q) {
   return esc(text).replace(re, "<mark>$1</mark>");
 }
 
-// ── Count-up animation ───────────────────────────────────────────────────
-function countUp(el, target, duration = 900) {
+// ── Count-up ──────────────────────────────────────────────────────────────
+function countUp(el, target, duration = 800) {
   const start = Date.now();
   const step = () => {
     const p = Math.min((Date.now() - start) / duration, 1);
-    const eased = 1 - Math.pow(1 - p, 3);
-    el.textContent = Math.round(eased * target);
+    el.textContent = Math.round((1 - Math.pow(1 - p, 3)) * target);
     if (p < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
 }
 
-// ── Skeleton ─────────────────────────────────────────────────────────────
+// ── Skeleton ──────────────────────────────────────────────────────────────
 function skeletonHTML() {
   return `
-    <div class="stats-row" style="margin-top:24px">
+    <div class="stats-row" style="margin-top:28px">
       ${Array(4).fill(`<div class="skeleton-card"><div class="sk-circle skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line-short skeleton"></div></div>`).join("")}
     </div>
-    ${Array(3).fill(`<div class="skeleton-card" style="margin-top:12px"><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line-short skeleton"></div></div>`).join("")}`;
+    ${Array(3).fill(`<div class="skeleton-card" style="margin-top:10px"><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line-short skeleton"></div></div>`).join("")}`;
 }
 
-// ── Header badge ─────────────────────────────────────────────────────────
+// ── Header badge ──────────────────────────────────────────────────────────
 function updateBadge() {
   const badge = document.getElementById("session-badge");
-  const text = document.getElementById("badge-text");
+  const text  = document.getElementById("badge-text");
   if (isLiveNow()) {
     badge.classList.add("live");
     badge.innerHTML = `<span class="live-pulse"></span><span>EN DIRECT</span>`;
@@ -558,7 +561,7 @@ function updateBadge() {
   }
 }
 
-// ── Render ───────────────────────────────────────────────────────────────
+// ── Render ────────────────────────────────────────────────────────────────
 function render(data) {
   const sessions = (data.sessions || []).slice().reverse();
   updateBadge();
@@ -567,33 +570,40 @@ function render(data) {
   const totalCh  = sessions.reduce((s,x) => s + (x.chunks_processed||0), 0);
   const last     = sessions[0];
 
-  // Footer date
   if (data.last_updated || last) {
     document.getElementById("last-updated").textContent =
-      "Dernière mise à jour : " + (data.last_updated || last?.date || "");
+      "Mise à jour : " + (data.last_updated || last?.date || "");
   }
 
   let html = `<div id="sec-status" style="height:1px;margin-top:-1px"></div>`;
 
   // ── Stat cards ──
-  html += `<div class="stats-row" style="margin-top:24px">
-    <div class="stat-card"><div class="stat-icon">📅</div>
+  html += `<div class="stats-row" style="margin-top:28px">
+    <div class="stat-card">
+      <div class="stat-icon">Sessions</div>
       <div class="stat-value" id="cnt-sessions">0</div>
-      <div class="stat-label">Sessions</div></div>
-    <div class="stat-card"><div class="stat-icon">🎯</div>
+      <div class="stat-label">enregistrées</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">Détections</div>
       <div class="stat-value" id="cnt-detections">0</div>
-      <div class="stat-label">Détections</div></div>
-    <div class="stat-card"><div class="stat-icon">⏱️</div>
+      <div class="stat-label">annonces détectées</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">Durée</div>
       <div class="stat-value" id="cnt-hours">0</div>
-      <div class="stat-label">Heures surveillées</div></div>
-    <div class="stat-card"><div class="stat-icon">🎵</div>
+      <div class="stat-label">heures surveillées</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">Chunks</div>
       <div class="stat-value" id="cnt-chunks">0</div>
-      <div class="stat-label">Chunks traités</div></div>
+      <div class="stat-label">segments analysés</div>
+    </div>
   </div>`;
 
   // ── Chart ──
   html += `<div id="sec-chart" style="height:1px;margin-top:-1px"></div>`;
-  html += `<div class="section-title">📈 Statistiques par session</div>`;
+  html += `<div class="section-title">Statistiques par session</div>`;
   html += renderChart(sessions);
 
   // ── Détections ──
@@ -601,9 +611,9 @@ function render(data) {
     (s.detections||[]).map(d => ({...d, session_date: s.date}))
   );
   html += `<div id="sec-detections" style="height:1px;margin-top:-1px"></div>`;
-  html += `<div class="section-title">🎯 Détections <span style="font-size:.8rem;font-weight:400;color:var(--text-secondary)">(${allDets.length})</span></div>`;
+  html += `<div class="section-title">Détections <span style="font-weight:400">(${allDets.length})</span></div>`;
   if (allDets.length === 0) {
-    html += emptyState("Aucune détection enregistrée pour l'instant", "Continuez la surveillance — une annonce peut arriver à tout moment !");
+    html += emptyState("Aucune détection enregistrée", "Continuez la surveillance — une annonce peut arriver à tout moment.");
   } else {
     html += `<div class="timeline">`;
     allDets.forEach((d,i) => { html += renderDetection(d,i); });
@@ -612,7 +622,7 @@ function render(data) {
 
   // ── Sessions ──
   html += `<div id="sec-sessions" style="height:1px;margin-top:-1px"></div>`;
-  html += `<div class="section-title">📋 Historique des sessions <span style="font-size:.8rem;font-weight:400;color:var(--text-secondary)">(${sessions.length})</span></div>`;
+  html += `<div class="section-title">Historique <span style="font-weight:400">(${sessions.length} sessions)</span></div>`;
   if (sessions.length === 0) {
     html += emptyState("Aucune session enregistrée", "Lancez une première surveillance pour voir l'historique ici.");
   } else {
@@ -624,15 +634,13 @@ function render(data) {
   // Count-up
   countUp(document.getElementById("cnt-sessions"), sessions.length);
   countUp(document.getElementById("cnt-detections"), totalDet);
-  countUp(document.getElementById("cnt-hours"), parseFloat(totalH.toFixed(1)) * 10, 900);
-  // Correct hours display to 1 decimal
+  countUp(document.getElementById("cnt-hours"), parseFloat(totalH.toFixed(1)) * 10, 800);
   setTimeout(() => {
     const el = document.getElementById("cnt-hours");
     if (el) el.textContent = totalH.toFixed(1);
-  }, 950);
+  }, 850);
   countUp(document.getElementById("cnt-chunks"), totalCh);
 
-  // Animate bars and progress fills
   requestAnimationFrame(() => {
     document.querySelectorAll(".conf-bar-inner[data-width]").forEach(el => {
       el.style.width = el.dataset.width + "%";
@@ -648,7 +656,7 @@ function render(data) {
   attachHandlers();
 }
 
-// ── Chart ────────────────────────────────────────────────────────────────
+// ── Chart ─────────────────────────────────────────────────────────────────
 function renderChart(sessions) {
   const vis = sessions.slice(0,12).reverse();
   if (!vis.length) return `<div class="card">${emptyState("Pas encore de données","")}</div>`;
@@ -656,10 +664,10 @@ function renderChart(sessions) {
   const maxDet = Math.max(...vis.map(s => (s.detections||[]).length), 1);
 
   const bars = vis.map(s => {
-    const ch = s.chunks_processed||0;
+    const ch  = s.chunks_processed||0;
     const det = (s.detections||[]).length;
-    const hCh  = Math.max(4, Math.round((ch/maxCh)*90));
-    const hDet = Math.max(det?4:0, Math.round((det/maxDet)*90));
+    const hCh  = Math.max(3, Math.round((ch/maxCh)*82));
+    const hDet = Math.max(det?3:0, Math.round((det/maxDet)*82));
     const lbl  = (s.date||"").slice(5);
     return `<div class="bar-group">
       <div class="bars">
@@ -678,46 +686,43 @@ function renderChart(sessions) {
     <div class="chart-wrap"><div class="chart">${bars}</div></div>
     <div class="chart-legend">
       <span><span class="legend-dot" style="background:var(--border)"></span>Chunks traités</span>
-      <span><span class="legend-dot" style="background:linear-gradient(180deg,#ff6b6b,var(--accent))"></span>Détections</span>
+      <span><span class="legend-dot" style="background:var(--text-secondary);opacity:.65"></span>Détections</span>
     </div>
   </div>`;
 }
 
-// ── Détection ────────────────────────────────────────────────────────────
+// ── Détection ─────────────────────────────────────────────────────────────
 function renderDetection(d, i) {
   const c = d.confidence||0;
-  const color = confColor(c);
   const hasCtx = (d.transcription_context||"").trim();
   return `<div class="det-entry" id="det-${i}">
-    <div class="det-icon">🎙️</div>
+    <div class="det-dot${d.notification_sent ? " confirmed" : ""}"></div>
     <div class="det-card">
       <div class="det-header">
         <span class="det-time">${esc(d.timestamp||"—")}</span>
         <span class="det-session-label">Session du ${fmtDate(d.session_date)}</span>
-        ${d.notification_sent ? '<span class="badge badge-detected">Notifié ✓</span>' : ""}
+        ${d.notification_sent ? '<span class="badge badge-detected">Notifié</span>' : ""}
       </div>
       <div class="det-text">${esc(d.extracted_info||"(sans info)")}</div>
-      <div class="confidence-wrap">
-        <div class="confidence-row">
-          <div class="conf-bar-outer">
-            <div class="conf-bar-inner" style="width:0;background:${color}" data-width="${c}"></div>
-          </div>
-          ${confBadge(c)}
+      <div class="confidence-row">
+        <div class="conf-bar-outer">
+          <div class="conf-bar-inner" style="width:0;background:${confColor(c)}" data-width="${c}"></div>
         </div>
+        ${confBadge(c)}
       </div>
-      ${hasCtx ? `<button class="btn-ctx" onclick="toggleCtx(${i})">▶ Contexte des 3 chunks</button>
+      ${hasCtx ? `<button class="btn-ctx" onclick="toggleCtx(${i})">▶ Contexte complet</button>
         <div class="det-ctx" id="ctx-${i}">${esc(d.transcription_context)}</div>` : ""}
     </div>
   </div>`;
 }
 
-// ── Session ──────────────────────────────────────────────────────────────
+// ── Session ───────────────────────────────────────────────────────────────
 function renderSession(s, i) {
-  const dets = s.detections||[];
-  const tr   = s.full_transcript||[];
+  const dets   = s.detections||[];
+  const tr     = s.full_transcript||[];
   const hasDet = dets.length > 0;
-  const badge = hasDet
-    ? `<span class="badge badge-detected">🎯 ${dets.length} détection${dets.length>1?"s":""}</span>`
+  const badge  = hasDet
+    ? `<span class="badge badge-detected">${dets.length} détection${dets.length>1?"s":""}</span>`
     : `<span class="badge badge-nothing">Rien détecté</span>`;
 
   const detCards = dets.map(d => `<div class="det-card" style="margin-bottom:8px">
@@ -731,7 +736,7 @@ function renderSession(s, i) {
     </div>
   </div>`).join("");
 
-  const trRows = tr.map((t,j) => `<div class="tr-entry" data-q="${esc((t.text||"").toLowerCase())}">
+  const trRows = tr.map(t => `<div class="tr-entry" data-q="${esc((t.text||"").toLowerCase())}">
     <span class="tr-ts">${esc(t.timestamp||"")}</span>
     <div class="tr-text">
       <span class="tr-raw">${esc(t.text||"")}</span>
@@ -750,8 +755,8 @@ function renderSession(s, i) {
     </div>
     <div class="session-body" id="body-${i}">
       <div class="session-actions">
-        ${hasDet ? `<button class="btn-sm" id="btn-det-${i}" onclick="togglePanel('det-panel-${i}','btn-det-${i}')">🎯 Détections (${dets.length})</button>` : ""}
-        ${tr.length ? `<button class="btn-sm" id="btn-tr-${i}" onclick="togglePanel('tr-panel-${i}','btn-tr-${i}')">📝 Transcription (${tr.length})</button>` : ""}
+        ${hasDet ? `<button class="btn-sm" id="btn-det-${i}" onclick="togglePanel('det-panel-${i}','btn-det-${i}')">Détections (${dets.length})</button>` : ""}
+        ${tr.length ? `<button class="btn-sm" id="btn-tr-${i}" onclick="togglePanel('tr-panel-${i}','btn-tr-${i}')">Transcription (${tr.length})</button>` : ""}
       </div>
       ${hasDet ? `<div id="det-panel-${i}" style="display:none">${detCards}</div>` : ""}
       ${tr.length ? `<div id="tr-panel-${i}" style="display:none">
@@ -760,34 +765,33 @@ function renderSession(s, i) {
                  oninput="filterTr(${i},this.value)" id="srch-${i}">
           <button class="search-clear" id="clr-${i}" onclick="clearSearch(${i})">✕</button>
         </div>
-        <div class="transcript-list">${trRows||'<p style="color:var(--text-secondary);font-size:.85rem">Aucune transcription.</p>'}</div>
+        <div class="transcript-list">${trRows||'<p style="color:var(--text-secondary);font-size:.81rem;padding:8px 0">Aucune transcription.</p>'}</div>
       </div>` : ""}
     </div>
   </div>`;
 }
 
-// ── Empty state ──────────────────────────────────────────────────────────
+// ── Empty state ───────────────────────────────────────────────────────────
 function emptyState(title, sub) {
   return `<div class="empty-state">
     <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2" opacity=".3"/>
-      <path d="M22 32h20M28 24l8 8-8 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity=".4"/>
+      <circle cx="32" cy="32" r="26" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M24 32h16M30 24l8 8-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     <p><strong>${esc(title)}</strong></p>
-    ${sub ? `<p style="margin-top:6px;font-size:.82rem">${esc(sub)}</p>` : ""}
+    ${sub ? `<p style="margin-top:6px;font-size:.79rem">${esc(sub)}</p>` : ""}
   </div>`;
 }
 
-// ── Interactions ─────────────────────────────────────────────────────────
+// ── Interactions ──────────────────────────────────────────────────────────
 function attachHandlers() {}
 
 function toggleSession(i) {
-  const body  = document.getElementById(`body-${i}`);
-  const chev  = document.getElementById(`chev-${i}`);
-  const open  = body.classList.toggle("open");
+  const body = document.getElementById(`body-${i}`);
+  const chev = document.getElementById(`chev-${i}`);
+  const open = body.classList.toggle("open");
   chev.classList.toggle("open", open);
   if (open) {
-    // Animate conf bars inside the opened session
     requestAnimationFrame(() => {
       body.querySelectorAll(".conf-bar-inner[data-width]").forEach(el => {
         el.style.width = el.dataset.width + "%";
@@ -815,20 +819,20 @@ function toggleCtx(i) {
   const ctx = document.getElementById(`ctx-${i}`);
   const btn = ctx.previousElementSibling;
   const open = ctx.classList.toggle("open");
-  btn.textContent = open ? "▼ Masquer le contexte" : "▶ Contexte des 3 chunks";
+  btn.textContent = open ? "▼ Masquer le contexte" : "▶ Contexte complet";
 }
 
 function filterTr(i, q) {
   const norm = q.toLowerCase().trim();
-  const clr = document.getElementById(`clr-${i}`);
+  const clr  = document.getElementById(`clr-${i}`);
   if (clr) clr.style.display = norm ? "block" : "none";
   const panel = document.getElementById(`tr-panel-${i}`);
   if (!panel) return;
   panel.querySelectorAll(".tr-entry").forEach(row => {
-    const txt = row.dataset.q || "";
+    const txt   = row.dataset.q || "";
     const match = !norm || txt.includes(norm);
     row.classList.toggle("hidden", !match);
-    const span = row.querySelector(".tr-raw");
+    const span  = row.querySelector(".tr-raw");
     if (span) span.innerHTML = norm && match ? hlSearch(span.textContent, norm) : esc(span.textContent);
   });
 }
@@ -846,11 +850,11 @@ function copyText(btn, text) {
   }).catch(() => {});
 }
 
-// ── Chargement données ───────────────────────────────────────────────────
+// ── Chargement ────────────────────────────────────────────────────────────
 async function loadData() {
   document.getElementById("loader").style.display = "block";
   document.getElementById("content").innerHTML = skeletonHTML();
-  document.getElementById("content").style.opacity = ".5";
+  document.getElementById("content").style.opacity = ".35";
   document.getElementById("error-box").style.display = "none";
 
   if (GIST_RAW_URL && GIST_RAW_URL !== "GIST_RAW_URL_PLACEHOLDER") {
@@ -866,13 +870,9 @@ async function loadData() {
 
   const cached = localStorage.getItem(LS_KEY);
   if (cached) {
-    try {
-      finish(JSON.parse(cached), true);
-      return;
-    } catch(_) {}
+    try { finish(JSON.parse(cached), true); return; } catch(_) {}
   }
 
-  // No data at all
   document.getElementById("loader").style.display = "none";
   document.getElementById("content").innerHTML = "";
   document.getElementById("content").style.opacity = "1";
@@ -880,7 +880,7 @@ async function loadData() {
   box.style.display = "flex";
   document.getElementById("error-msg").textContent = GIST_RAW_URL === "GIST_RAW_URL_PLACEHOLDER"
     ? "⚙️ Dashboard non encore configuré — lancez une première session avec GIST_ENABLED=true."
-    : "❌ Impossible de charger les données. Vérifiez que le Gist est accessible.";
+    : "Impossible de charger les données. Vérifiez que le Gist est accessible.";
   render({ sessions: [] });
 }
 
@@ -895,7 +895,7 @@ function finish(data, fromCache) {
   render(data);
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────────
 loadData();
 </script>
 </body>
