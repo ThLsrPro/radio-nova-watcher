@@ -1,110 +1,69 @@
 # Radio Nova Watcher
 
-## Objectif
-Application Python qui écoute en continu le flux live de Radio Nova,
-transcrit la parole en temps réel et détecte toute annonce de mise en vente
-de places pour l'émission "La dernière" enregistrée à l'Européen (Paris).
-Une notification push est envoyée via ntfy.sh dès la détection.
-Conçu pour tourner automatiquement chaque dimanche sur GitHub Actions.
+### Projet
+Écoute Radio Nova live → transcription Groq whisper-large-v3 → détection regex locale → push ntfy.sh. GitHub Actions dimanche 18h Paris. Flux : `http://radionova.ice.infomaniak.ch/radionova-256.aac`
 
-## Flux audio
-URL : http://radionova.ice.infomaniak.ch/radionova-256.aac
+### Stack
+- Python 3.11+, FFmpeg, Groq API, ntfy.sh, GitHub Actions
+- Détection : regex/mots-clés locaux (pas d'API Claude/OpenAI/Anthropic)
 
-## Stack technique
-- Python 3.11+
-- FFmpeg (capture et segmentation du flux AAC)
-- Groq API / whisper-large-v3 (transcription cloud, sans GPU)
-- Détection locale par mots-clés et expressions régulières (pas d'API externe)
-- ntfy.sh (notifications push via HTTP POST)
-- GitHub Actions (exécution automatique chaque dimanche à 18h Paris)
+### Fichiers clés
+| Fichier | Rôle |
+|---|---|
+| `main.py` | boucle principale + health checks |
+| `audio_capture.py` | FFmpeg + watchdog reconnexion |
+| `transcriber.py` | Groq whisper-large-v3 |
+| `detector.py` | regex 3 niveaux + contexte multi-chunks |
+| `notifier.py` | ntfy.sh HTTP POST |
+| `archiver.py` | sessions → GitHub Gist privé |
+| `quota_monitor.py` | quotas Groq jour/mois |
+| `healthcheck.py` | check autonome samedi |
+| `config.py` | chargement .env |
+| `docs/index.html` | dashboard GitHub Pages (HTML/CSS/JS inline) |
+| `docs/generate_dashboard.py` | injecte URL Gist dans index.html |
+| `scripts/optimize_context.py` | analyse CLAUDE.md + optimisation tokens |
 
-## Structure du projet
-- main.py                            → boucle principale + health checks au démarrage
-- audio_capture.py                   → capture FFmpeg + watchdog de flux
-- transcriber.py                     → transcription via Groq API
-- detector.py                        → détection locale par mots-clés / regex + contexte multi-chunks
-- notifier.py                        → notifications push via ntfy.sh
-- archiver.py                        → archivage des sessions sur GitHub Gist
-- quota_monitor.py                   → suivi des quotas Groq (local + CI)
-- healthcheck.py                     → check pré-émission autonome (samedi)
-- config.py                          → variables d'environnement
-- docs/index.html                    → dashboard GitHub Pages (dark mode, responsive)
-- docs/generate_dashboard.py         → met à jour l'URL Gist dans index.html
-- .github/workflows/radio_watcher.yml → workflow GitHub Actions (dimanche + samedi)
+### Variables d'environnement
+- `GROQ_API_KEY` — clé Groq
+- `NTFY_TOPIC` — nom topic ntfy
+- `NTFY_SERVER` — URL serveur (défaut : https://ntfy.sh)
+- `GIST_TOKEN` — token GitHub scope:gist uniquement
+- `GIST_ENABLED` — true/false
+- `RADIO_STREAM_URL` — URL flux AAC
+- `CHUNK_DURATION_SECONDS` — durée chunk (défaut : 15)
+- `DETECTION_COOLDOWN_MINUTES` — cooldown notifs (défaut : 30)
 
-## Health checks au démarrage
-Avant de lancer la surveillance, main.py vérifie :
-1. Connexion internet (ping ntfy.sh)
-2. Accès au flux radio (HEAD sur RADIO_STREAM_URL)
-3. Groq API (liste des modèles)
-4. FFmpeg (ffmpeg -version)
-Une notification ntfy récapitule les résultats.
+### Pièges connus
+- **ntfy headers** : pas d'emoji dans `Title`/`Tags` (latin-1 → UnicodeEncodeError) — emoji uniquement dans body
+- **Flux radio** : `GET stream=True` obligatoire, pas `HEAD` (streams AAC refusent HEAD → HTTP 400)
+- **archiver** : logique fetch-merge-push — toujours recharger le Gist avant d'écrire (évite l'écrasement)
+- **detector** : `add_transcript()` appelé APRÈS `analyze()` (chunk courant → buffer itération suivante)
+- **CI** : `CI=true` → `quota_monitor` skip I/O fichier (filesystem éphémère Actions)
+- **Gist** : `MAX_SESSIONS=10` — les 10 sessions les plus récentes conservées
 
-## Notifications ntfy
-- Démarrage : résultats des health checks
-- Alerte détection : info extraite + transcription brute + confidence
-- Arrêt : durée, chunks traités, nombre de détections
+### Comportements clés
+- Watchdog : alerte ntfy si aucun chunk depuis 120s, backoff exponentiel 10/20/40/80/160s
+- Detector : buffer `deque(3)`, mode alerte partielle si confidence 50-84 (seuil → 60 sur 3 chunks suivants)
+- Archiver : sauvegarde périodique 2min, `start_session()` reprend session du jour si elle existe
+- `healthcheck.py` : exit(0) OK / exit(1) erreur — workflow samedi 16h00 UTC
 
-## Archivage Gist (archiver.py)
-- Activé via GIST_ENABLED=true + GIST_TOKEN (scope gist uniquement)
-- Cherche ou crée automatiquement le Gist "radio-nova-watcher-data" (privé)
-- Accumule transcriptions et détections en mémoire pendant la session
-- Sauvegarde périodique vers le Gist toutes les 10 minutes
-- Push final en fin de session + mise à jour de dashboard_data.json
-- En mode no-op silencieux si désactivé (aucune erreur)
-- Noms des secrets : GIST_TOKEN et GIST_ENABLED (pas d'autre préfixe)
+### Conventions
+- Code commenté en français, type hints partout
+- Secrets GitHub : `GIST_TOKEN` / `GIST_ENABLED` (pas de préfixe supplémentaire)
+- Logs : `logs/app.log` + `logs/transcriptions.log`
 
-## Dashboard GitHub Pages (docs/)
-- docs/index.html : fichier unique HTML+CSS+JS, aucune dépendance CDN
-- Design dark mode, couleurs Radio Nova (#E8003D), responsive mobile
-- Charge les données depuis l'URL raw du Gist au chargement
-- Fallback localStorage si le Gist est inaccessible
-- Sections : stats globales, graphique barres CSS, timeline détections, historique sessions
-- Recherche de mots-clés dans les transcriptions avec mise en évidence
-- docs/generate_dashboard.py : injecte l'URL Gist dans GIST_RAW_URL de index.html
-- Le job deploy-pages du workflow met à jour et commit index.html après chaque run
-
-## Watchdog de flux (audio_capture.py)
-- Déclenché si aucun chunk reçu depuis 120 secondes
-- Alerte ntfy immédiate avec timestamp de l'interruption
-- Reconnexion automatique : backoff exponentiel 10s / 20s / 40s / 80s / 160s
-- Notification ntfy de reconnexion réussie (avec durée d'interruption)
-- Arrêt propre du script si toutes les tentatives échouent
-
-## Analyse contextuelle multi-chunks (detector.py)
-- Buffer circulaire des 3 dernières transcriptions (collections.deque)
-- Texte analysé = concaténation [N-2] ... [N-1] ... [N courant]
-- Mode "alerte partielle" : confidence 50-84 → sensibilité abaissée à 60 sur 3 chunks suivants
-- La notification inclut le contexte complet des 3 chunks
-- Logger INFO au passage en alerte partielle, INFO à l'expiration sans confirmation
-
-## Check pré-émission du samedi (healthcheck.py)
-- Script autonome, indépendant de main.py
-- Vérifie : internet, flux radio, Groq API (transcription silence 1s), FFmpeg, ntfy
-- Rapport ntfy : ✅ "Tout est prêt pour demain" ou ⚠️ "Problème détecté" avec lien Actions
-- exit(0) si tout OK, exit(1) sinon
-- Déclenché chaque samedi à 16h00 UTC via GitHub Actions (job weekly_check)
-
-## Quota monitoring (quota_monitor.py)
-- Suivi en mémoire (session) + fichier JSON local (logs/quota_tracker.json)
-- Reset automatique des compteurs jour/mois
-- En CI (GitHub Actions, CI=true) : tracking mémoire uniquement, pas d'I/O fichier
-- Seuils d'alerte ntfy : 400 req/jour, 300 req/mois, 600 min audio/mois
-- Alerte dédiée sur erreur 429 Groq + pause 60s avant retry
-- Résumé quota affiché dans les notifications de démarrage et de fin
-
-## Conventions
-- Code commenté en français
-- Type hints Python partout
-- Logs dans logs/transcriptions.log
-- Variables sensibles dans .env (jamais dans le code)
-
-## Commandes utiles
-# Activer l'environnement virtuel
+### Commandes utiles
+```
 source venv/bin/activate
-
-# Lancer l'application
 python main.py
-
-# Tester la notification ntfy
 python main.py --test-notification
+python healthcheck.py
+python scripts/optimize_context.py
+python -c "from archiver import test_accumulation; test_accumulation()"
+```
+
+### Maintenance CLAUDE.md
+- Mettre à jour après chaque nouvelle fonctionnalité (mode compact)
+- Pas d'exemples de code dans ce fichier
+- Garder < 150 lignes, supprimer sections obsolètes
+- Relancer `scripts/optimize_context.py` avant commit important

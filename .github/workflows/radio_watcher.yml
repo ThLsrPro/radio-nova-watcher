@@ -3,9 +3,11 @@ name: Radio Nova Watcher
 on:
   # Dimanche 16h00 UTC = 18h00 Paris → surveillance live
   # Samedi  16h00 UTC = 18h00 Paris → check pré-émission
+  # Lundi    8h00 UTC               → analyse contexte Claude Code
   schedule:
     - cron: '0 16 * * 0'
     - cron: '0 16 * * 6'
+    - cron: '0 8 * * 1'
 
   # Déclenchement manuel depuis l'onglet Actions (pour tester)
   workflow_dispatch:
@@ -93,6 +95,30 @@ jobs:
 
           Consultez les logs : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             "${{ secrets.NTFY_SERVER }}/${{ secrets.NTFY_TOPIC }}"
+
+  # ── Analyse contexte Claude Code (lundi 8h UTC) ───────────────────────────────
+  context_check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      NTFY_TOPIC:  ${{ secrets.NTFY_TOPIC }}
+      NTFY_SERVER: ${{ secrets.NTFY_SERVER }}
+
+    # Déclenché uniquement le lundi via schedule
+    if: github.event_name == 'schedule' && github.event.schedule == '0 8 * * 1'
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Analyser CLAUDE.md et notifier si optimisation possible
+        run: python scripts/optimize_context.py --notify
 
   # ── Check pré-émission du samedi ─────────────────────────────────────────────
   weekly_check:
