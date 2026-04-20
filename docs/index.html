@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radio Nova Watcher 🎙️</title>
+<style>
+  :root {
+    --red: #E8003D;
+    --red-dark: #b8002e;
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #2e2e2e;
+    --text: #f0f0f0;
+    --muted: #888;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font);
+         font-size: 15px; line-height: 1.6; }
+
+  /* ── Layout ── */
+  .container { max-width: 900px; margin: 0 auto; padding: 0 16px 60px; }
+
+  /* ── Header ── */
+  header { background: var(--surface); border-bottom: 2px solid var(--red);
+           padding: 18px 0; margin-bottom: 28px; position: sticky; top: 0; z-index: 10; }
+  header .inner { max-width: 900px; margin: 0 auto; padding: 0 16px;
+                  display: flex; align-items: center; justify-content: space-between;
+                  flex-wrap: wrap; gap: 10px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand h1 { font-size: 1.25rem; font-weight: 700; }
+  .brand .dot { width: 10px; height: 10px; border-radius: 50%;
+                background: var(--muted); flex-shrink: 0; }
+  .brand .dot.live { background: var(--red); box-shadow: 0 0 8px var(--red);
+                     animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .next-session { font-size: .85rem; color: var(--muted); }
+  .next-session strong { color: var(--text); }
+  #btn-refresh { background: var(--red); color: #fff; border: none; border-radius: 6px;
+                 padding: 7px 14px; font-size: .85rem; cursor: pointer; font-weight: 600; }
+  #btn-refresh:hover { background: var(--red-dark); }
+
+  /* ── Loader ── */
+  #loader { text-align: center; padding: 60px 0; color: var(--muted); display: none; }
+  #loader .spinner { width: 36px; height: 36px; border: 3px solid var(--border);
+                     border-top-color: var(--red); border-radius: 50%;
+                     animation: spin .8s linear infinite; margin: 0 auto 14px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #error-msg { background: #2a0a0a; border: 1px solid var(--red); border-radius: 8px;
+               padding: 16px; margin-bottom: 20px; display: none; }
+
+  /* ── Cards ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+          padding: 20px; margin-bottom: 16px; }
+  .card-title { font-size: .75rem; font-weight: 700; text-transform: uppercase;
+                letter-spacing: .08em; color: var(--muted); margin-bottom: 14px; }
+
+  /* ── Stats row ── */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;
+               margin-bottom: 16px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+               padding: 16px; text-align: center; }
+  .stat-value { font-size: 2rem; font-weight: 800; color: var(--red); line-height: 1.1; }
+  .stat-label { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+
+  /* ── Sessions list ── */
+  .session-item { border: 1px solid var(--border); border-radius: 8px;
+                  margin-bottom: 10px; overflow: hidden; }
+  .session-header { display: flex; align-items: center; justify-content: space-between;
+                    flex-wrap: wrap; gap: 8px; padding: 14px 16px;
+                    cursor: pointer; background: var(--surface2);
+                    transition: background .15s; user-select: none; }
+  .session-header:hover { background: #2c2c2c; }
+  .session-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .session-date { font-weight: 700; }
+  .session-duration { font-size: .82rem; color: var(--muted); }
+  .badge { font-size: .72rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+  .badge-detected { background: rgba(34,197,94,.15); color: var(--green);
+                    border: 1px solid rgba(34,197,94,.3); }
+  .badge-nothing { background: var(--border); color: var(--muted); border: 1px solid var(--border); }
+  .session-body { display: none; padding: 16px; border-top: 1px solid var(--border); }
+  .session-body.open { display: block; }
+  .session-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .btn-sm { background: var(--surface); border: 1px solid var(--border); color: var(--text);
+             border-radius: 6px; padding: 5px 12px; font-size: .8rem; cursor: pointer;
+             transition: border-color .15s; }
+  .btn-sm:hover { border-color: var(--red); }
+  .btn-sm.active { border-color: var(--red); color: var(--red); }
+
+  /* ── Transcript search ── */
+  .search-box { width: 100%; padding: 8px 12px; background: var(--bg);
+                border: 1px solid var(--border); border-radius: 6px; color: var(--text);
+                font-size: .85rem; margin-bottom: 10px; }
+  .search-box:focus { outline: none; border-color: var(--red); }
+  .transcript-list { max-height: 300px; overflow-y: auto; }
+  .transcript-entry { display: flex; gap: 10px; padding: 5px 0;
+                       border-bottom: 1px solid var(--border); font-size: .83rem; }
+  .transcript-entry:last-child { border-bottom: none; }
+  .ts { color: var(--muted); flex-shrink: 0; font-family: monospace; }
+  .tx { flex: 1; }
+  mark { background: rgba(232,0,61,.3); color: var(--text); border-radius: 2px; padding: 0 2px; }
+  .hidden { display: none !important; }
+
+  /* ── Détections timeline ── */
+  .detection-card { border: 1px solid rgba(232,0,61,.25); border-radius: 8px;
+                    padding: 14px 16px; margin-bottom: 10px;
+                    background: rgba(232,0,61,.04); }
+  .det-header { display: flex; align-items: center; justify-content: space-between;
+                flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .det-time { font-family: monospace; font-size: .85rem; color: var(--muted); }
+  .det-session { font-size: .78rem; color: var(--muted); }
+  .det-info { font-size: .9rem; margin-bottom: 10px; }
+  .confidence-bar { height: 6px; border-radius: 3px; background: var(--border);
+                    margin-bottom: 6px; overflow: hidden; }
+  .confidence-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+  .confidence-label { font-size: .75rem; color: var(--muted); }
+  .det-context { background: var(--surface2); border-radius: 6px; padding: 10px 12px;
+                 font-size: .8rem; color: var(--muted); margin-top: 8px;
+                 display: none; white-space: pre-wrap; word-break: break-word; }
+  .det-context.open { display: block; }
+  .toggle-ctx { font-size: .75rem; color: var(--red); cursor: pointer; background: none;
+                border: none; padding: 0; margin-top: 6px; }
+
+  /* ── Bar chart ── */
+  .chart-wrap { overflow-x: auto; }
+  .chart { display: flex; align-items: flex-end; gap: 6px; height: 120px;
+           padding-top: 10px; min-width: 300px; }
+  .bar-group { display: flex; flex-direction: column; align-items: center; gap: 3px;
+               flex: 1; min-width: 30px; }
+  .bars { display: flex; gap: 2px; align-items: flex-end; height: 100px; }
+  .bar { width: 14px; border-radius: 3px 3px 0 0; min-height: 2px;
+         transition: height .4s; cursor: default; }
+  .bar-chunks { background: #444; }
+  .bar-detections { background: var(--red); }
+  .bar-label { font-size: .65rem; color: var(--muted); text-align: center;
+               white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+               max-width: 40px; }
+  .chart-legend { display: flex; gap: 14px; margin-top: 10px; font-size: .75rem; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block;
+                margin-right: 4px; vertical-align: middle; }
+  .no-data { color: var(--muted); font-size: .9rem; text-align: center; padding: 24px 0; }
+
+  /* ── Section titles ── */
+  .section-title { font-size: 1rem; font-weight: 700; margin: 28px 0 14px;
+                   padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  /* ── Responsive ── */
+  @media (max-width: 520px) {
+    .brand h1 { font-size: 1rem; }
+    .stat-value { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <div class="brand">
+      <div class="dot" id="live-dot"></div>
+      <h1>Radio Nova Watcher 🎙️</h1>
+    </div>
+    <span class="next-session" id="next-label">Calcul en cours…</span>
+    <button id="btn-refresh" onclick="loadData()">↻ Actualiser</button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="loader"><div class="spinner"></div>Chargement des données…</div>
+  <div id="error-msg"></div>
+  <div id="content" style="display:none"></div>
+</div>
+
+<script>
+// ── Configuration ──────────────────────────────────────────────────────────
+const GIST_RAW_URL = "GIST_RAW_URL_PLACEHOLDER";
+const LS_KEY = "rnw_sessions_cache";
+
+// ── Utilitaires ────────────────────────────────────────────────────────────
+function nextSunday() {
+  const now = new Date();
+  const d = new Date(now);
+  d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7));
+  d.setHours(18, 0, 0, 0);
+  return d;
+}
+
+function formatDate(iso) {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function formatDuration(minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  return h > 0 ? `${h}h${m.toString().padStart(2,"0")}` : `${m}min`;
+}
+
+function confidenceColor(c) {
+  if (c >= 90) return "#22c55e";
+  if (c >= 75) return "#eab308";
+  return "#E8003D";
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function highlightKeywords(text, kw) {
+  if (!kw || !text) return escapeHtml(text);
+  const escaped = kw.map(k => k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
+  const re = new RegExp(`(${escaped.join("|")})`, "gi");
+  return escapeHtml(text).replace(re, "<mark>$1</mark>");
+}
+
+// ── Mise à jour du header ──────────────────────────────────────────────────
+function updateHeader(sessions) {
+  const ns = nextSunday();
+  const opts = { weekday:"long", day:"numeric", month:"long" };
+  const label = ns.toLocaleDateString("fr-FR", opts) + " à 18h00";
+  const el = document.getElementById("next-label");
+  el.innerHTML = `Prochaine surveillance : <strong>${label}</strong>`;
+
+  // Dot live : on considère "en cours" si aujourd'hui est dimanche et 18h-20h
+  const now = new Date();
+  const isLive = now.getDay() === 0 && now.getHours() >= 18 && now.getHours() < 20;
+  const dot = document.getElementById("live-dot");
+  if (isLive) {
+    dot.classList.add("live");
+    el.innerHTML = `<strong style="color:#E8003D">🔴 Surveillance en cours</strong>`;
+  }
+}
+
+// ── Rendu principal ────────────────────────────────────────────────────────
+function render(data) {
+  const sessions = (data.sessions || []).slice().reverse(); // plus récent en premier
+  updateHeader(sessions);
+
+  const lastSession = sessions[0];
+  const totalDetections = sessions.reduce((s, x) => s + (x.detections || []).length, 0);
+  const totalHours = sessions.reduce((s, x) => s + (x.duration_minutes || 0), 0) / 60;
+
+  let html = "";
+
+  // ── Stat cards ──
+  html += `<div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value">${sessions.length}</div>
+      <div class="stat-label">Sessions surveillées</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${totalDetections}</div>
+      <div class="stat-label">Détections totales</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${totalHours.toFixed(1)}h</div>
+      <div class="stat-label">Heures surveillées</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${lastSession ? formatDate(lastSession.date) : "—"}</div>
+      <div class="stat-label">Dernière session</div>
+    </div>
+  </div>`;
+
+  // ── Graphique ──
+  html += `<div class="section-title">Statistiques par session</div>`;
+  html += renderChart(sessions);
+
+  // ── Détections ──
+  const allDetections = sessions.flatMap(s =>
+    (s.detections || []).map(d => ({ ...d, session_date: s.date }))
+  );
+  html += `<div class="section-title">Détections (${allDetections.length})</div>`;
+  if (allDetections.length === 0) {
+    html += `<div class="card"><p class="no-data">Aucune détection enregistrée.</p></div>`;
+  } else {
+    allDetections.forEach((d, i) => { html += renderDetection(d, i); });
+  }
+
+  // ── Sessions ──
+  html += `<div class="section-title">Historique des sessions (${sessions.length})</div>`;
+  if (sessions.length === 0) {
+    html += `<div class="card"><p class="no-data">Aucune session enregistrée.</p></div>`;
+  } else {
+    sessions.forEach((s, i) => { html += renderSession(s, i); });
+  }
+
+  document.getElementById("content").innerHTML = html;
+  attachListeners();
+}
+
+// ── Graphique barres CSS ───────────────────────────────────────────────────
+function renderChart(sessions) {
+  const visible = sessions.slice(0, 12).reverse();
+  if (visible.length === 0) return `<div class="card"><p class="no-data">Pas encore de données.</p></div>`;
+
+  const maxChunks = Math.max(...visible.map(s => s.chunks_processed || 0), 1);
+  const maxDet = Math.max(...visible.map(s => (s.detections || []).length), 1);
+
+  const bars = visible.map(s => {
+    const chunks = s.chunks_processed || 0;
+    const dets = (s.detections || []).length;
+    const hChunks = Math.max(4, Math.round((chunks / maxChunks) * 90));
+    const hDet = Math.max(dets > 0 ? 4 : 0, Math.round((dets / maxDet) * 90));
+    const label = (s.date || "").slice(5); // MM-DD
+    return `<div class="bar-group">
+      <div class="bars">
+        <div class="bar bar-chunks" style="height:${hChunks}px" title="${chunks} chunks"></div>
+        <div class="bar bar-detections" style="height:${hDet}px" title="${dets} détections"></div>
+      </div>
+      <div class="bar-label">${escapeHtml(label)}</div>
+    </div>`;
+  }).join("");
+
+  return `<div class="card">
+    <div class="chart-wrap"><div class="chart">${bars}</div></div>
+    <div class="chart-legend">
+      <span><span class="legend-dot" style="background:#444"></span>Chunks traités</span>
+      <span><span class="legend-dot" style="background:#E8003D"></span>Détections</span>
+    </div>
+  </div>`;
+}
+
+// ── Rendu détection ────────────────────────────────────────────────────────
+function renderDetection(d, i) {
+  const c = d.confidence || 0;
+  const color = confidenceColor(c);
+  const hasCtx = d.transcription_context && d.transcription_context.trim();
+  return `<div class="detection-card">
+    <div class="det-header">
+      <span class="det-time">${escapeHtml(d.timestamp || "—")}</span>
+      <span class="det-session">Session du ${formatDate(d.session_date)}</span>
+      ${d.notification_sent ? '<span class="badge badge-detected">Notifié ✓</span>' : ''}
+    </div>
+    <div class="det-info">${escapeHtml(d.extracted_info || "(sans info)")}</div>
+    <div class="confidence-bar">
+      <div class="confidence-fill" style="width:${c}%;background:${color}"></div>
+    </div>
+    <div class="confidence-label">Confidence : ${c}%</div>
+    ${hasCtx ? `<button class="toggle-ctx" onclick="toggleCtx(this)">▶ Voir le contexte des 3 chunks</button>
+    <div class="det-context">${escapeHtml(d.transcription_context)}</div>` : ""}
+  </div>`;
+}
+
+// ── Rendu session ──────────────────────────────────────────────────────────
+function renderSession(s, i) {
+  const dets = s.detections || [];
+  const hasDetection = dets.length > 0;
+  const transcript = s.full_transcript || [];
+  const badge = hasDetection
+    ? `<span class="badge badge-detected">🎯 ${dets.length} détection${dets.length>1?"s":""} !</span>`
+    : `<span class="badge badge-nothing">Rien détecté</span>`;
+
+  const detHtml = dets.map(d => `<div class="detection-card" style="margin-bottom:8px">
+    <div class="det-header">
+      <span class="det-time">${escapeHtml(d.timestamp||"—")}</span>
+    </div>
+    <div class="det-info">${escapeHtml(d.extracted_info||"")}</div>
+    <div class="confidence-bar">
+      <div class="confidence-fill" style="width:${d.confidence||0}%;background:${confidenceColor(d.confidence||0)}"></div>
+    </div>
+    <div class="confidence-label">Confidence : ${d.confidence||0}%</div>
+  </div>`).join("");
+
+  const transcriptId = `tr-${i}`;
+  const detectionsId = `det-${i}`;
+  const searchId = `search-${i}`;
+
+  const transcriptHtml = transcript.map(t =>
+    `<div class="transcript-entry" data-text="${escapeHtml((t.text||"").toLowerCase())}">
+      <span class="ts">${escapeHtml(t.timestamp||"")}</span>
+      <span class="tx">${escapeHtml(t.text||"")}</span>
+    </div>`
+  ).join("");
+
+  return `<div class="session-item">
+    <div class="session-header" onclick="toggleSession(this)">
+      <div class="session-meta">
+        <span class="session-date">${formatDate(s.date)}</span>
+        <span class="session-duration">${formatDuration(s.duration_minutes||0)} · ${s.chunks_processed||0} chunks</span>
+        ${badge}
+      </div>
+      <span style="color:var(--muted);font-size:.9rem">▼</span>
+    </div>
+    <div class="session-body" id="body-${i}">
+      <div class="session-actions">
+        ${hasDetection ? `<button class="btn-sm" onclick="togglePanel('${detectionsId}', this)">🎯 Détections</button>` : ""}
+        ${transcript.length > 0 ? `<button class="btn-sm" onclick="togglePanel('${transcriptId}', this)">📝 Transcription (${transcript.length})</button>` : ""}
+      </div>
+      <div class="card" id="${detectionsId}" style="display:none">
+        ${detHtml || '<p class="no-data">Aucune détection.</p>'}
+      </div>
+      <div id="${transcriptId}" style="display:none">
+        <input type="text" class="search-box" id="${searchId}"
+               placeholder="Rechercher dans la transcription…"
+               oninput="filterTranscript('${transcriptId}', '${searchId}')">
+        <div class="transcript-list">${transcriptHtml || '<p class="no-data">Transcription vide.</p>'}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Interactions ───────────────────────────────────────────────────────────
+function attachListeners() {}
+
+function toggleSession(header) {
+  const i = header.parentElement.querySelector('[id^="body-"]').id.split("-")[1];
+  const body = document.getElementById(`body-${i}`);
+  const arrow = header.querySelector("span:last-child");
+  body.classList.toggle("open");
+  arrow.textContent = body.classList.contains("open") ? "▲" : "▼";
+}
+
+function togglePanel(id, btn) {
+  const el = document.getElementById(id);
+  const visible = el.style.display !== "none";
+  el.style.display = visible ? "none" : "block";
+  btn.classList.toggle("active", !visible);
+}
+
+function toggleCtx(btn) {
+  const ctx = btn.nextElementSibling;
+  ctx.classList.toggle("open");
+  btn.textContent = ctx.classList.contains("open")
+    ? "▼ Masquer le contexte" : "▶ Voir le contexte des 3 chunks";
+}
+
+function filterTranscript(containerId, searchId) {
+  const query = document.getElementById(searchId).value.toLowerCase().trim();
+  const container = document.getElementById(containerId);
+  container.querySelectorAll(".transcript-entry").forEach(row => {
+    const text = row.dataset.text || "";
+    row.classList.toggle("hidden", query.length > 0 && !text.includes(query));
+    // Mise en évidence
+    const tx = row.querySelector(".tx");
+    const raw = tx.textContent;
+    if (query && text.includes(query)) {
+      const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`, "gi");
+      tx.innerHTML = escapeHtml(raw).replace(re, "<mark>$1</mark>");
+    } else {
+      tx.innerHTML = escapeHtml(raw);
+    }
+  });
+}
+
+// ── Chargement des données ─────────────────────────────────────────────────
+async function loadData() {
+  const loader = document.getElementById("loader");
+  const errorEl = document.getElementById("error-msg");
+  const content = document.getElementById("content");
+
+  loader.style.display = "block";
+  content.style.display = "none";
+  errorEl.style.display = "none";
+
+  // Essayer depuis le Gist
+  if (GIST_RAW_URL && GIST_RAW_URL !== "GIST_RAW_URL_PLACEHOLDER") {
+    try {
+      // Ajouter un cache-buster pour éviter le cache navigateur
+      const url = GIST_RAW_URL + "?t=" + Date.now();
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+      loader.style.display = "none";
+      content.style.display = "block";
+      render(data);
+      return;
+    } catch (e) {
+      console.warn("Fetch Gist échoué :", e);
+    }
+  }
+
+  // Fallback : localStorage
+  const cached = localStorage.getItem(LS_KEY);
+  if (cached) {
+    try {
+      const data = JSON.parse(cached);
+      loader.style.display = "none";
+      content.style.display = "block";
+      errorEl.style.display = "block";
+      errorEl.textContent = "⚠️ Données hors-ligne (cache local) — impossible de joindre le Gist.";
+      render(data);
+      return;
+    } catch (_) {}
+  }
+
+  // Aucune donnée
+  loader.style.display = "none";
+  errorEl.style.display = "block";
+  if (!GIST_RAW_URL || GIST_RAW_URL === "GIST_RAW_URL_PLACEHOLDER") {
+    errorEl.textContent = "⚙️ Dashboard non encore configuré — lancez une première session puis poussez sur GitHub.";
+  } else {
+    errorEl.textContent = "❌ Impossible de charger les données. Vérifiez que le Gist est accessible.";
+  }
+  content.style.display = "block";
+  render({ sessions: [] });
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>

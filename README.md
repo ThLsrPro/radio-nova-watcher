@@ -77,11 +77,15 @@ Puis renseignez `NTFY_SERVER=https://ntfy.monserveur.fr` dans `.env`.
 ## Remplissage du fichier `.env`
 
 ```dotenv
-# Clé API Groq (https://console.groq.com → API Keys)
+# Clé API Groq
 GROQ_API_KEY=gsk_...
 
 # Topic ntfy (choisissez un nom imprévisible)
 NTFY_TOPIC=radionova-alerte-thomas-x7k2
+
+# Archivage Gist (optionnel — voir section dédiée)
+GIST_TOKEN=ghp_...
+GIST_ENABLED=true
 
 # Optionnel — valeurs par défaut déjà configurées
 # NTFY_SERVER=https://ntfy.sh
@@ -200,6 +204,55 @@ L'onglet **Actions** du repo affiche les logs en direct pendant l'exécution.
 
 ---
 
+## Archivage sur GitHub Gist
+
+Chaque session est archivée automatiquement dans un **Gist privé** (transcriptions complètes, détections, stats).
+
+### 1. Créer le token GitHub
+
+**github.com → Settings → Developer settings → Personal access tokens → Generate new token**
+- Durée : selon vos préférences
+- Scope à cocher : **gist** uniquement (rien d'autre)
+
+Copiez le token (`ghp_...`) dans `.env` sous `GIST_TOKEN` et mettez `GIST_ENABLED=true`.
+
+### 2. Premier lancement
+
+Au démarrage, le Gist `radio-nova-watcher-data` est créé automatiquement dans votre compte.
+L'ID s'affiche dans le terminal.
+
+### 3. Données archivées
+
+- `sessions.json` : historique complet de toutes les sessions
+- `dashboard_data.json` : stats agrégées pour le dashboard
+
+---
+
+## Dashboard GitHub Pages
+
+Visualisation de l'historique en dark mode, accessible sur mobile.
+
+### 1. Activer GitHub Pages
+
+Dans votre repo GitHub : **Settings → Pages → Source : Deploy from a branch**
+- Branch : `main`
+- Folder : `/docs`
+
+Le dashboard sera disponible sur : `https://<votre-user>.github.io/radio-nova-watcher/`
+
+### 2. URL du Gist dans le dashboard
+
+Après le premier run avec `GIST_ENABLED=true`, le job `deploy-pages` met à jour automatiquement
+`docs/index.html` avec l'URL raw du Gist et pousse sur `main`.
+GitHub Pages se met à jour dans la foulée.
+
+En local (pour tester avant de pousser) :
+```bash
+python docs/generate_dashboard.py "https://gist.githubusercontent.com/..."
+```
+
+---
+
 ## Fonctionnalités avancées
 
 ### Watchdog de flux
@@ -227,11 +280,15 @@ radio-nova-watcher/
 ├── .github/
 │   └── workflows/
 │       └── radio_watcher.yml  # Dimanche : surveillance / Samedi : check
+├── docs/
+│   ├── index.html             # Dashboard GitHub Pages (dark mode, responsive)
+│   └── generate_dashboard.py  # Met à jour l'URL Gist dans index.html
 ├── main.py                    # Boucle principale + health checks
 ├── audio_capture.py           # Capture FFmpeg + watchdog de flux
 ├── transcriber.py             # Transcription Groq (whisper-large-v3)
 ├── detector.py                # Détection mots-clés + contexte multi-chunks
 ├── notifier.py                # Notifications push via ntfy.sh
+├── archiver.py                # Archivage des sessions sur GitHub Gist
 ├── healthcheck.py             # Check pré-émission autonome (samedi)
 ├── quota_monitor.py           # Suivi quotas Groq
 ├── config.py                  # Variables d'environnement

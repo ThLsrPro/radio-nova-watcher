@@ -15,6 +15,9 @@ jobs:
   watch:
     runs-on: ubuntu-latest
     timeout-minutes: 130
+    # Nécessaire pour que le job deploy-pages puisse commiter
+    permissions:
+      contents: write
 
     env:
       NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
@@ -23,6 +26,8 @@ jobs:
       RADIO_STREAM_URL: ${{ secrets.RADIO_STREAM_URL }}
       CHUNK_DURATION_SECONDS: ${{ secrets.CHUNK_DURATION_SECONDS }}
       DETECTION_COOLDOWN_MINUTES: ${{ secrets.DETECTION_COOLDOWN_MINUTES }}
+      GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+      GIST_ENABLED: ${{ secrets.GIST_ENABLED }}
 
     steps:
       - name: Checkout du code
@@ -42,6 +47,40 @@ jobs:
 
       - name: Lancer la surveillance
         run: python main.py
+
+      - name: Mettre à jour le dashboard GitHub Pages
+        if: ${{ env.GIST_ENABLED == 'true' && env.GIST_TOKEN != '' }}
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ENABLED: ${{ secrets.GIST_ENABLED }}
+        run: |
+          # Récupérer l'URL raw du Gist depuis l'API GitHub
+          GIST_RAW=$(python - <<'EOF'
+          import os, requests, json
+          token = os.environ["GIST_TOKEN"]
+          headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
+          resp = requests.get("https://api.github.com/gists", headers=headers, timeout=10)
+          for g in resp.json():
+              if g.get("description") == "radio-nova-watcher-data":
+                  gist_id = g["id"]
+                  detail = requests.get(f"https://api.github.com/gists/{gist_id}", headers=headers, timeout=10).json()
+                  print(detail["files"]["sessions.json"]["raw_url"])
+                  break
+          EOF
+          )
+          if [ -n "$GIST_RAW" ]; then
+            python docs/generate_dashboard.py "$GIST_RAW"
+          fi
+
+      - name: Commiter et pousser le dashboard mis à jour
+        if: ${{ env.GIST_ENABLED == 'true' && env.GIST_TOKEN != '' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/index.html
+          # Ne commiter que si le fichier a changé
+          git diff --cached --quiet || git commit -m "chore: update dashboard Gist URL [skip ci]"
+          git push
 
       - name: Notifier en cas d'échec
         if: failure()

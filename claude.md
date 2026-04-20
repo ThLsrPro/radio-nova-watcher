@@ -24,9 +24,12 @@ URL : http://radionova.ice.infomaniak.ch/radionova-256.aac
 - transcriber.py                     → transcription via Groq API
 - detector.py                        → détection locale par mots-clés / regex + contexte multi-chunks
 - notifier.py                        → notifications push via ntfy.sh
+- archiver.py                        → archivage des sessions sur GitHub Gist
 - quota_monitor.py                   → suivi des quotas Groq (local + CI)
 - healthcheck.py                     → check pré-émission autonome (samedi)
 - config.py                          → variables d'environnement
+- docs/index.html                    → dashboard GitHub Pages (dark mode, responsive)
+- docs/generate_dashboard.py         → met à jour l'URL Gist dans index.html
 - .github/workflows/radio_watcher.yml → workflow GitHub Actions (dimanche + samedi)
 
 ## Health checks au démarrage
@@ -41,6 +44,25 @@ Une notification ntfy récapitule les résultats.
 - Démarrage : résultats des health checks
 - Alerte détection : info extraite + transcription brute + confidence
 - Arrêt : durée, chunks traités, nombre de détections
+
+## Archivage Gist (archiver.py)
+- Activé via GIST_ENABLED=true + GIST_TOKEN (scope gist uniquement)
+- Cherche ou crée automatiquement le Gist "radio-nova-watcher-data" (privé)
+- Accumule transcriptions et détections en mémoire pendant la session
+- Sauvegarde périodique vers le Gist toutes les 10 minutes
+- Push final en fin de session + mise à jour de dashboard_data.json
+- En mode no-op silencieux si désactivé (aucune erreur)
+- Noms des secrets : GIST_TOKEN et GIST_ENABLED (pas d'autre préfixe)
+
+## Dashboard GitHub Pages (docs/)
+- docs/index.html : fichier unique HTML+CSS+JS, aucune dépendance CDN
+- Design dark mode, couleurs Radio Nova (#E8003D), responsive mobile
+- Charge les données depuis l'URL raw du Gist au chargement
+- Fallback localStorage si le Gist est inaccessible
+- Sections : stats globales, graphique barres CSS, timeline détections, historique sessions
+- Recherche de mots-clés dans les transcriptions avec mise en évidence
+- docs/generate_dashboard.py : injecte l'URL Gist dans GIST_RAW_URL de index.html
+- Le job deploy-pages du workflow met à jour et commit index.html après chaque run
 
 ## Watchdog de flux (audio_capture.py)
 - Déclenché si aucun chunk reçu depuis 120 secondes

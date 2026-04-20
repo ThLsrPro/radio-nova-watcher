@@ -28,6 +28,7 @@ import requests
 
 import config
 import quota_monitor
+from archiver import GistArchiver
 from audio_capture import capture_chunks, cleanup_all_chunks
 from detector import Detector
 from notifier import (
@@ -42,7 +43,6 @@ from transcriber import Transcriber
 # ── Health checks ─────────────────────────────────────────────────────────────
 
 def check_internet() -> str:
-    """Vérifie la connexion internet en atteignant ntfy.sh."""
     try:
         requests.get("https://ntfy.sh", timeout=5)
         return "✅ Internet OK"
@@ -51,7 +51,6 @@ def check_internet() -> str:
 
 
 def check_radio_stream() -> str:
-    """Vérifie que le flux Radio Nova est accessible."""
     try:
         with requests.get(config.RADIO_STREAM_URL, stream=True, timeout=5) as resp:
             if resp.status_code < 400:
@@ -62,7 +61,6 @@ def check_radio_stream() -> str:
 
 
 def check_groq_api() -> str:
-    """Vérifie que la clé Groq API est valide en listant les modèles."""
     try:
         from groq import Groq
         client = Groq(api_key=config.GROQ_API_KEY)
@@ -73,15 +71,9 @@ def check_groq_api() -> str:
 
 
 def check_ffmpeg() -> str:
-    """Vérifie que FFmpeg est installé et accessible."""
     try:
-        result = subprocess.run(
-            ["ffmpeg", "-version"],
-            capture_output=True,
-            timeout=5,
-        )
+        result = subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5)
         if result.returncode == 0:
-            # Extraire la version depuis la première ligne de sortie
             first_line = result.stdout.decode(errors="replace").splitlines()[0]
             version = first_line.split(" ")[2] if len(first_line.split(" ")) > 2 else "?"
             return f"✅ FFmpeg disponible ({version})"
@@ -93,28 +85,13 @@ def check_ffmpeg() -> str:
 
 
 def run_health_checks() -> tuple[list[str], bool]:
-    """
-    Exécute tous les health checks et retourne les résultats.
-
-    Returns:
-        (liste des résultats, tous_ok: bool)
-    """
     print("\n── Health checks ─────────────────────────────────────")
     results: list[str] = []
-
-    checks = [
-        ("Internet", check_internet),
-        ("Flux radio", check_radio_stream),
-        ("Groq API", check_groq_api),
-        ("FFmpeg", check_ffmpeg),
-    ]
-
-    for name, fn in checks:
+    for _, fn in [("Internet", check_internet), ("Flux radio", check_radio_stream),
+                  ("Groq API", check_groq_api), ("FFmpeg", check_ffmpeg)]:
         result = fn()
         results.append(result)
         print(f"  {result}")
-
-    # Vérifier que les checks critiques ont réussi
     all_ok = all("✅" in r for r in results)
     print("──────────────────────────────────────────────────────\n")
     return results, all_ok
@@ -122,8 +99,7 @@ def run_health_checks() -> tuple[list[str], bool]:
 
 # ── Boucle principale ─────────────────────────────────────────────────────────
 
-def print_startup_banner() -> None:
-    """Affiche les informations de démarrage."""
+def print_startup_banner(archiver: GistArchiver) -> None:
     topic_url = f"{config.NTFY_SERVER}/{config.NTFY_TOPIC}"
     print("\n" + "=" * 60)
     print("  Radio Nova Watcher — Surveillance en temps réel")
@@ -133,17 +109,25 @@ def print_startup_banner() -> None:
     print(f"  Durée chunk    : {config.CHUNK_DURATION_SECONDS}s")
     print(f"  Cooldown       : {config.DETECTION_COOLDOWN_MINUTES} min")
     print(f"  Topic ntfy     : {topic_url}")
+    if archiver.is_enabled:
+        print(f"  Archivage Gist : activé (ID : {archiver.gist_id})")
+    else:
+        print(f"  Archivage Gist : désactivé")
     print("=" * 60)
 
 
 def run_surveillance() -> None:
     """Boucle principale de surveillance."""
-    print_startup_banner()
+
+    # ── Archiveur Gist ─────────────────────────────────────────────────────────
+    archiver = GistArchiver()
+    archiver.start_session()
+
+    print_startup_banner(archiver)
 
     # ── Health checks ──────────────────────────────────────────────────────────
     check_results, all_ok = run_health_checks()
 
-    # Notification de démarrage (inclut les résultats des checks + quota mensuel)
     ntfy_ok = send_startup_notification(
         check_results,
         quota_summary=quota_monitor.get_monthly_summary(),
@@ -162,7 +146,6 @@ def run_surveillance() -> None:
     detector = Detector()
     logger.info("Tous les modules sont prêts. Démarrage de la surveillance.\n")
 
-    # Compteurs pour la notification de fin
     start_time = time.time()
     chunks_processed = 0
     detections_count = 0
@@ -181,12 +164,13 @@ def run_surveillance() -> None:
             chunks_processed += 1
             print(f"[{timestamp}] {result.text or '(silence)'}")
 
+            # Archiver la transcription
+            archiver.add_transcription(timestamp, result.text)
+
             if not result.text.strip():
                 continue
 
             # ── Analyse contextuelle multi-chunks ──────────────────────────────
-            # analyze() lit le buffer AVANT d'y ajouter le chunk courant,
-            # donc on ajoute après pour que le prochain chunk en bénéficie.
             detection = detector.analyze(result.text)
             detector.add_transcript(result.text)
 
@@ -197,7 +181,7 @@ def run_surveillance() -> None:
                     f"mots-clés={detection.matched_keywords}"
                 )
 
-            # ── Notification ───────────────────────────────────────────────────
+            # ── Notification et archivage de la détection ─────────────────────
             if detector.should_notify(detection):
                 logger.info("Envoi de la notification ntfy…")
                 success = send_notification(
@@ -213,6 +197,15 @@ def run_surveillance() -> None:
                     last_detection_info = detection.extracted_info
                     logger.info("Notification envoyée avec succès.")
 
+                # Archiver la détection (qu'elle soit notifiée ou non)
+                archiver.add_detection(
+                    timestamp=timestamp,
+                    confidence=detection.confidence,
+                    extracted_info=detection.extracted_info,
+                    transcription_context=detection.context_text or result.text,
+                    notification_sent=success if detector.should_notify(detection) else False,
+                )
+
     except KeyboardInterrupt:
         print("\n\nArrêt demandé par l'utilisateur (Ctrl+C).")
     finally:
@@ -221,7 +214,11 @@ def run_surveillance() -> None:
         transcriber.close()
         cleanup_all_chunks()
 
-        # Notification de fin de surveillance (avec résumé quota de session)
+        # Mettre à jour les stats quota dans l'archiveur avant la sauvegarde finale
+        from quota_monitor import _session_requests, _session_audio_minutes
+        archiver.update_quota_stats(_session_requests, _session_audio_minutes)
+        archiver.save_session(duration)
+
         send_shutdown_notification(
             duration_seconds=duration,
             chunks_processed=chunks_processed,
@@ -235,12 +232,10 @@ def run_surveillance() -> None:
 # ── Test de notification ───────────────────────────────────────────────────────
 
 def run_test_notification() -> None:
-    """Envoie une notification ntfy de test sans lancer la surveillance."""
     topic_url = f"{config.NTFY_SERVER}/{config.NTFY_TOPIC}"
     print(f"\nEnvoi d'une notification ntfy de test…")
     print(f"Topic : {topic_url}")
     print(f"Vérifiez dans votre navigateur ou l'app ntfy : {topic_url}\n")
-
     success = send_test_notification()
     if success:
         print("Test réussi ! Vérifiez vos notifications ntfy.")

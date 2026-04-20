@@ -31,6 +31,12 @@ NTFY_TOPIC: str = _require("NTFY_TOPIC")
 # URL du serveur ntfy (ntfy.sh public ou instance auto-hébergée)
 NTFY_SERVER: str = _optional("NTFY_SERVER", "https://ntfy.sh")
 
+# ── GitHub Gist — Archivage des sessions ─────────────────────────────────────
+# Token GitHub avec le scope "gist" (Settings > Developer settings > PAT)
+GIST_TOKEN: str = _optional("GIST_TOKEN", "")
+# Activer l'archivage : "true" pour activer, toute autre valeur pour désactiver
+GIST_ENABLED: bool = _optional("GIST_ENABLED", "false").lower() == "true"
+
 # ── Flux radio ────────────────────────────────────────────────────────────────
 RADIO_STREAM_URL: str = _optional(
     "RADIO_STREAM_URL",
