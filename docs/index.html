@@ -1,509 +1,901 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radio Nova Watcher 🎙️</title>
 <style>
-  :root {
-    --red: #E8003D;
-    --red-dark: #b8002e;
-    --bg: #0f0f0f;
-    --surface: #1a1a1a;
-    --surface2: #242424;
-    --border: #2e2e2e;
-    --text: #f0f0f0;
-    --muted: #888;
-    --green: #22c55e;
-    --yellow: #eab308;
-    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--font);
-         font-size: 15px; line-height: 1.6; }
+/* ── Variables ──────────────────────────────────────────────────────────── */
+:root {
+  --bg-primary:#f5f5f5; --bg-secondary:#ffffff; --bg-card:#ffffff;
+  --text-primary:#1a1a1a; --text-secondary:#666666;
+  --accent:#E8003D; --accent-hover:#c4002e;
+  --border:#e0e0e0; --success:#00a844; --warning:#e65100;
+  --shadow:0 2px 12px rgba(0,0,0,.08);
+  --shadow-hover:0 6px 20px rgba(0,0,0,.13);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'Courier New',Courier,monospace;
+  --radius:16px; --radius-sm:8px;
+  transition:background .3s,color .3s,border-color .3s,box-shadow .3s;
+}
+[data-theme="dark"] {
+  --bg-primary:#0d0d0d; --bg-secondary:#1a1a1a; --bg-card:#222222;
+  --text-primary:#ffffff; --text-secondary:#aaaaaa;
+  --accent:#E8003D; --accent-hover:#ff1a52;
+  --border:#333333; --success:#00c853; --warning:#ff9800;
+  --shadow:0 2px 12px rgba(0,0,0,.4);
+  --shadow-hover:0 6px 24px rgba(0,0,0,.6);
+}
 
-  /* ── Layout ── */
-  .container { max-width: 900px; margin: 0 auto; padding: 0 16px 60px; }
+/* ── Reset ──────────────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg-primary);color:var(--text-primary);
+  font-family:var(--font);font-size:15px;line-height:1.6;
+  transition:background .3s,color .3s;
+  min-height:100vh;
+}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button{cursor:pointer;font-family:inherit}
 
-  /* ── Header ── */
-  header { background: var(--surface); border-bottom: 2px solid var(--red);
-           padding: 18px 0; margin-bottom: 28px; position: sticky; top: 0; z-index: 10; }
-  header .inner { max-width: 900px; margin: 0 auto; padding: 0 16px;
-                  display: flex; align-items: center; justify-content: space-between;
-                  flex-wrap: wrap; gap: 10px; }
-  .brand { display: flex; align-items: center; gap: 10px; }
-  .brand h1 { font-size: 1.25rem; font-weight: 700; }
-  .brand .dot { width: 10px; height: 10px; border-radius: 50%;
-                background: var(--muted); flex-shrink: 0; }
-  .brand .dot.live { background: var(--red); box-shadow: 0 0 8px var(--red);
-                     animation: pulse 1.4s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-  .next-session { font-size: .85rem; color: var(--muted); }
-  .next-session strong { color: var(--text); }
-  #btn-refresh { background: var(--red); color: #fff; border: none; border-radius: 6px;
-                 padding: 7px 14px; font-size: .85rem; cursor: pointer; font-weight: 600; }
-  #btn-refresh:hover { background: var(--red-dark); }
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.container{max-width:940px;margin:0 auto;padding:0 16px 80px}
 
-  /* ── Loader ── */
-  #loader { text-align: center; padding: 60px 0; color: var(--muted); display: none; }
-  #loader .spinner { width: 36px; height: 36px; border: 3px solid var(--border);
-                     border-top-color: var(--red); border-radius: 50%;
-                     animation: spin .8s linear infinite; margin: 0 auto 14px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  #error-msg { background: #2a0a0a; border: 1px solid var(--red); border-radius: 8px;
-               padding: 16px; margin-bottom: 20px; display: none; }
+/* ── Header ─────────────────────────────────────────────────────────────── */
+header{
+  background:var(--bg-secondary);
+  border-bottom:3px solid var(--accent);
+  box-shadow:var(--shadow);
+  padding:14px 0;
+  position:sticky;top:0;z-index:100;
+  transition:background .3s,box-shadow .3s;
+}
+.header-inner{
+  max-width:940px;margin:0 auto;padding:0 16px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand-logo{flex-shrink:0;width:40px;height:40px}
+.brand-text h1{
+  font-size:1.15rem;font-weight:800;white-space:nowrap;
+  background:linear-gradient(90deg,var(--accent),#ff6b6b);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.brand-text p{font-size:.72rem;color:var(--text-secondary);margin-top:1px}
+.header-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.session-badge{
+  display:flex;align-items:center;gap:6px;
+  font-size:.8rem;font-weight:600;
+  padding:5px 12px;border-radius:20px;
+  background:var(--bg-card);border:1px solid var(--border);
+  color:var(--text-secondary);
+}
+.session-badge.live{
+  background:rgba(232,0,61,.1);border-color:rgba(232,0,61,.3);
+  color:var(--accent);
+}
+.live-pulse{
+  width:8px;height:8px;border-radius:50%;background:var(--accent);
+  animation:pulse-dot 1.4s infinite;
+}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.btn-theme{
+  background:var(--bg-card);border:1px solid var(--border);
+  color:var(--text-primary);border-radius:50%;
+  width:36px;height:36px;font-size:1rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s,border-color .2s,transform .2s;
+  flex-shrink:0;
+}
+.btn-theme:hover{border-color:var(--accent);transform:rotate(15deg)}
+.btn-refresh{
+  background:var(--accent);color:#fff;border:none;
+  border-radius:var(--radius-sm);padding:7px 14px;
+  font-size:.82rem;font-weight:700;
+  transition:background .2s,transform .15s;
+  flex-shrink:0;
+}
+.btn-refresh:hover{background:var(--accent-hover);transform:scale(1.04)}
 
-  /* ── Cards ── */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-          padding: 20px; margin-bottom: 16px; }
-  .card-title { font-size: .75rem; font-weight: 700; text-transform: uppercase;
-                letter-spacing: .08em; color: var(--muted); margin-bottom: 14px; }
+/* ── Navbar ─────────────────────────────────────────────────────────────── */
+nav{
+  background:var(--bg-secondary);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:71px;z-index:90;
+  overflow-x:auto;white-space:nowrap;
+  transition:background .3s;
+}
+nav::-webkit-scrollbar{height:0}
+.nav-inner{
+  max-width:940px;margin:0 auto;padding:0 16px;
+  display:flex;gap:0;
+}
+.nav-link{
+  padding:10px 16px;font-size:.83rem;font-weight:600;
+  color:var(--text-secondary);border:none;background:none;
+  border-bottom:2px solid transparent;
+  transition:color .2s,border-color .2s;
+}
+.nav-link:hover,.nav-link.active{color:var(--accent);border-bottom-color:var(--accent)}
 
-  /* ── Stats row ── */
-  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;
-               margin-bottom: 16px; }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-               padding: 16px; text-align: center; }
-  .stat-value { font-size: 2rem; font-weight: 800; color: var(--red); line-height: 1.1; }
-  .stat-label { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+/* ── Skeleton ───────────────────────────────────────────────────────────── */
+.skeleton{
+  background:linear-gradient(90deg,var(--border) 25%,var(--bg-card) 50%,var(--border) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.5s infinite;
+  border-radius:var(--radius-sm);
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skeleton-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;margin-bottom:12px;
+  box-shadow:var(--shadow);
+}
+.sk-line{height:14px;margin-bottom:10px}
+.sk-line-short{height:14px;width:60%;margin-bottom:10px}
+.sk-circle{width:52px;height:52px;border-radius:50%;margin-bottom:10px}
 
-  /* ── Sessions list ── */
-  .session-item { border: 1px solid var(--border); border-radius: 8px;
-                  margin-bottom: 10px; overflow: hidden; }
-  .session-header { display: flex; align-items: center; justify-content: space-between;
-                    flex-wrap: wrap; gap: 8px; padding: 14px 16px;
-                    cursor: pointer; background: var(--surface2);
-                    transition: background .15s; user-select: none; }
-  .session-header:hover { background: #2c2c2c; }
-  .session-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .session-date { font-weight: 700; }
-  .session-duration { font-size: .82rem; color: var(--muted); }
-  .badge { font-size: .72rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
-  .badge-detected { background: rgba(34,197,94,.15); color: var(--green);
-                    border: 1px solid rgba(34,197,94,.3); }
-  .badge-nothing { background: var(--border); color: var(--muted); border: 1px solid var(--border); }
-  .session-body { display: none; padding: 16px; border-top: 1px solid var(--border); }
-  .session-body.open { display: block; }
-  .session-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-  .btn-sm { background: var(--surface); border: 1px solid var(--border); color: var(--text);
-             border-radius: 6px; padding: 5px 12px; font-size: .8rem; cursor: pointer;
-             transition: border-color .15s; }
-  .btn-sm:hover { border-color: var(--red); }
-  .btn-sm.active { border-color: var(--red); color: var(--red); }
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+.card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;
+  box-shadow:var(--shadow);
+  transition:transform .2s,box-shadow .2s,background .3s,border-color .3s;
+}
+.card:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover)}
+.card-title{
+  font-size:.72rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.09em;color:var(--text-secondary);margin-bottom:16px;
+}
 
-  /* ── Transcript search ── */
-  .search-box { width: 100%; padding: 8px 12px; background: var(--bg);
-                border: 1px solid var(--border); border-radius: 6px; color: var(--text);
-                font-size: .85rem; margin-bottom: 10px; }
-  .search-box:focus { outline: none; border-color: var(--red); }
-  .transcript-list { max-height: 300px; overflow-y: auto; }
-  .transcript-entry { display: flex; gap: 10px; padding: 5px 0;
-                       border-bottom: 1px solid var(--border); font-size: .83rem; }
-  .transcript-entry:last-child { border-bottom: none; }
-  .ts { color: var(--muted); flex-shrink: 0; font-family: monospace; }
-  .tx { flex: 1; }
-  mark { background: rgba(232,0,61,.3); color: var(--text); border-radius: 2px; padding: 0 2px; }
-  .hidden { display: none !important; }
+/* ── Section titles ─────────────────────────────────────────────────────── */
+.section-title{
+  font-size:1rem;font-weight:700;
+  margin:32px 0 14px;padding-bottom:8px;
+  border-bottom:2px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
 
-  /* ── Détections timeline ── */
-  .detection-card { border: 1px solid rgba(232,0,61,.25); border-radius: 8px;
-                    padding: 14px 16px; margin-bottom: 10px;
-                    background: rgba(232,0,61,.04); }
-  .det-header { display: flex; align-items: center; justify-content: space-between;
-                flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-  .det-time { font-family: monospace; font-size: .85rem; color: var(--muted); }
-  .det-session { font-size: .78rem; color: var(--muted); }
-  .det-info { font-size: .9rem; margin-bottom: 10px; }
-  .confidence-bar { height: 6px; border-radius: 3px; background: var(--border);
-                    margin-bottom: 6px; overflow: hidden; }
-  .confidence-fill { height: 100%; border-radius: 3px; transition: width .4s; }
-  .confidence-label { font-size: .75rem; color: var(--muted); }
-  .det-context { background: var(--surface2); border-radius: 6px; padding: 10px 12px;
-                 font-size: .8rem; color: var(--muted); margin-top: 8px;
-                 display: none; white-space: pre-wrap; word-break: break-word; }
-  .det-context.open { display: block; }
-  .toggle-ctx { font-size: .75rem; color: var(--red); cursor: pointer; background: none;
-                border: none; padding: 0; margin-top: 6px; }
+/* ── Stat cards ─────────────────────────────────────────────────────────── */
+.stats-row{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:12px;margin-bottom:0;
+}
+.stat-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px 16px;
+  text-align:center;box-shadow:var(--shadow);
+  transition:transform .2s,box-shadow .2s,background .3s;
+}
+.stat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover)}
+.stat-icon{font-size:2em;line-height:1;margin-bottom:8px}
+.stat-value{
+  font-size:2.1rem;font-weight:800;
+  color:var(--accent);line-height:1.1;font-variant-numeric:tabular-nums;
+}
+.stat-label{font-size:.75rem;color:var(--text-secondary);margin-top:4px}
 
-  /* ── Bar chart ── */
-  .chart-wrap { overflow-x: auto; }
-  .chart { display: flex; align-items: flex-end; gap: 6px; height: 120px;
-           padding-top: 10px; min-width: 300px; }
-  .bar-group { display: flex; flex-direction: column; align-items: center; gap: 3px;
-               flex: 1; min-width: 30px; }
-  .bars { display: flex; gap: 2px; align-items: flex-end; height: 100px; }
-  .bar { width: 14px; border-radius: 3px 3px 0 0; min-height: 2px;
-         transition: height .4s; cursor: default; }
-  .bar-chunks { background: #444; }
-  .bar-detections { background: var(--red); }
-  .bar-label { font-size: .65rem; color: var(--muted); text-align: center;
-               white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-               max-width: 40px; }
-  .chart-legend { display: flex; gap: 14px; margin-top: 10px; font-size: .75rem; }
-  .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block;
-                margin-right: 4px; vertical-align: middle; }
-  .no-data { color: var(--muted); font-size: .9rem; text-align: center; padding: 24px 0; }
+/* ── Progress bar ───────────────────────────────────────────────────────── */
+.progress-wrap{margin-top:10px}
+.progress-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-secondary);margin-bottom:4px}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{
+  height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--accent),#ff6b6b);
+  width:0;transition:width 1.2s cubic-bezier(.4,0,.2,1);
+}
 
-  /* ── Section titles ── */
-  .section-title { font-size: 1rem; font-weight: 700; margin: 28px 0 14px;
-                   padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+/* ── Chart bars ─────────────────────────────────────────────────────────── */
+.chart-wrap{overflow-x:auto;padding-bottom:4px}
+.chart{display:flex;align-items:flex-end;gap:8px;height:130px;min-width:280px;padding-top:14px}
+.bar-group{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:36px}
+.bars{display:flex;gap:3px;align-items:flex-end;height:100px}
+.bar{
+  width:16px;border-radius:4px 4px 0 0;min-height:3px;
+  transition:height 1.2s cubic-bezier(.4,0,.2,1);position:relative;
+}
+.bar-chunks{background:var(--border)}
+.bar-detections{background:linear-gradient(180deg,#ff6b6b,var(--accent))}
+.bar-val{
+  position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+  font-size:.6rem;color:var(--text-secondary);white-space:nowrap;
+  opacity:0;transition:opacity .3s .8s;
+}
+.bar:hover .bar-val{opacity:1}
+.bar-label{font-size:.65rem;color:var(--text-secondary);text-align:center;max-width:40px;overflow:hidden;text-overflow:ellipsis}
+.chart-legend{display:flex;gap:16px;margin-top:10px;font-size:.75rem;color:var(--text-secondary)}
+.legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:middle}
 
-  /* ── Responsive ── */
-  @media (max-width: 520px) {
-    .brand h1 { font-size: 1rem; }
-    .stat-value { font-size: 1.6rem; }
-  }
+/* ── Timeline détections ────────────────────────────────────────────────── */
+.timeline{position:relative;padding-left:36px}
+.timeline::before{
+  content:'';position:absolute;left:14px;top:0;bottom:0;
+  width:2px;background:linear-gradient(180deg,var(--accent),transparent);
+}
+.det-entry{
+  position:relative;margin-bottom:16px;
+  opacity:0;transform:translateY(12px);
+  animation:fade-in-up .4s forwards;
+}
+.det-entry:nth-child(1){animation-delay:.05s}
+.det-entry:nth-child(2){animation-delay:.1s}
+.det-entry:nth-child(3){animation-delay:.15s}
+.det-entry:nth-child(4){animation-delay:.2s}
+.det-entry:nth-child(5){animation-delay:.25s}
+@keyframes fade-in-up{to{opacity:1;transform:none}}
+.det-icon{
+  position:absolute;left:-30px;top:14px;
+  width:22px;height:22px;border-radius:50%;
+  background:var(--accent);display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;z-index:1;box-shadow:0 0 0 3px var(--bg-primary);
+}
+.det-card{
+  background:var(--bg-card);border:1px solid rgba(232,0,61,.2);
+  border-left:3px solid var(--accent);
+  border-radius:var(--radius-sm);padding:14px 16px;
+  box-shadow:var(--shadow);transition:background .3s;
+}
+.det-header{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.det-time{font-family:var(--mono);font-size:.8rem;color:var(--text-secondary)}
+.det-session-label{font-size:.72rem;color:var(--text-secondary)}
+.det-text{font-size:.9rem;margin-bottom:10px;font-weight:500}
+.det-text mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 2px}
+.confidence-wrap{margin-bottom:4px}
+.confidence-row{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.conf-bar-outer{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden}
+.conf-bar-inner{height:100%;border-radius:4px;width:0;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.conf-label{font-size:.75rem;color:var(--text-secondary);min-width:50px;text-align:right}
+.badge-conf{
+  font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:12px;
+  border:1px solid;margin-left:auto;white-space:nowrap;
+}
+.badge-high{color:var(--success);background:rgba(0,200,83,.1);border-color:rgba(0,200,83,.3)}
+.badge-mid{color:var(--warning);background:rgba(255,152,0,.1);border-color:rgba(255,152,0,.3)}
+.badge-low{color:var(--text-secondary);background:var(--border);border-color:var(--border)}
+.btn-ctx{
+  font-size:.73rem;color:var(--accent);background:none;border:none;
+  padding:0;margin-top:6px;display:flex;align-items:center;gap:4px;
+}
+.btn-ctx:hover{text-decoration:underline}
+.det-ctx{
+  display:none;margin-top:8px;
+  background:var(--bg-primary);border-radius:var(--radius-sm);
+  padding:10px 12px;font-size:.8rem;color:var(--text-secondary);
+  font-family:var(--mono);white-space:pre-wrap;word-break:break-word;
+  border:1px solid var(--border);
+  transition:background .3s;
+}
+.det-ctx.open{display:block}
+
+/* ── Sessions ───────────────────────────────────────────────────────────── */
+.session-item{
+  border:1px solid var(--border);border-radius:var(--radius);
+  margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);
+  transition:box-shadow .2s,border-color .2s;
+}
+.session-item:hover{border-color:var(--accent);box-shadow:var(--shadow-hover)}
+.session-head{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:8px;padding:14px 18px;
+  background:var(--bg-card);cursor:pointer;
+  user-select:none;transition:background .15s;
+}
+.session-head:hover{background:var(--bg-secondary)}
+.session-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.session-date{font-weight:700;font-size:.95rem}
+.session-info{font-size:.8rem;color:var(--text-secondary)}
+.badge{font-size:.71rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid}
+.badge-detected{color:var(--success);background:rgba(0,200,83,.1);border-color:rgba(0,200,83,.3)}
+.badge-nothing{color:var(--text-secondary);background:var(--border);border-color:var(--border)}
+.chevron{color:var(--text-secondary);font-size:.85rem;transition:transform .25s}
+.chevron.open{transform:rotate(180deg)}
+.session-body{display:none;padding:16px 18px;border-top:1px solid var(--border)}
+.session-body.open{display:block}
+.session-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.btn-sm{
+  background:var(--bg-primary);border:1px solid var(--border);
+  color:var(--text-primary);border-radius:var(--radius-sm);
+  padding:6px 13px;font-size:.79rem;font-weight:600;
+  transition:border-color .15s,background .15s;
+}
+.btn-sm:hover,.btn-sm.active{border-color:var(--accent);color:var(--accent);background:rgba(232,0,61,.06)}
+
+/* ── Transcription ──────────────────────────────────────────────────────── */
+.search-wrap{position:relative;margin-bottom:10px}
+.search-box{
+  width:100%;padding:9px 36px 9px 12px;
+  background:var(--bg-primary);border:1px solid var(--border);
+  border-radius:var(--radius-sm);color:var(--text-primary);font-size:.85rem;
+  transition:border-color .2s,background .3s;
+}
+.search-box:focus{outline:none;border-color:var(--accent)}
+.search-clear{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--text-secondary);font-size:.85rem;
+  display:none;
+}
+.transcript-list{max-height:320px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.transcript-list::-webkit-scrollbar{width:4px}
+.transcript-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.tr-entry{
+  display:flex;gap:10px;padding:6px 0;
+  border-bottom:1px solid var(--border);font-size:.82rem;
+  font-family:var(--mono);background:var(--bg-primary);
+  transition:background .15s;
+}
+.tr-entry:last-child{border-bottom:none}
+.tr-entry:hover{background:var(--bg-card)}
+.tr-ts{color:var(--text-secondary);flex-shrink:0;width:70px}
+.tr-text{flex:1;word-break:break-word;padding-right:32px;position:relative}
+.btn-copy{
+  position:absolute;right:0;top:0;
+  background:none;border:1px solid var(--border);
+  color:var(--text-secondary);border-radius:4px;
+  padding:1px 6px;font-size:.7rem;opacity:0;
+  transition:opacity .15s,color .15s;
+}
+.tr-entry:hover .btn-copy{opacity:1}
+.btn-copy:hover{color:var(--accent);border-color:var(--accent)}
+.btn-copy.copied{color:var(--success);border-color:var(--success)}
+mark{background:rgba(255,200,0,.4);color:inherit;border-radius:2px;padding:0 1px}
+[data-theme="dark"] mark{background:rgba(255,200,0,.25)}
+.tr-entry.hidden{display:none}
+
+/* ── Empty / Error states ───────────────────────────────────────────────── */
+.empty-state{text-align:center;padding:40px 20px}
+.empty-state svg{width:64px;height:64px;margin-bottom:14px;opacity:.35}
+.empty-state p{color:var(--text-secondary);font-size:.9rem}
+.error-box{
+  background:rgba(232,0,61,.06);border:1px solid rgba(232,0,61,.2);
+  border-radius:var(--radius);padding:16px 20px;margin-bottom:16px;
+  display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.error-box p{color:var(--accent);font-size:.88rem}
+.btn-retry{background:var(--accent);color:#fff;border:none;
+           border-radius:var(--radius-sm);padding:6px 14px;font-size:.82rem;font-weight:700}
+#loader{display:none;padding:40px 0}
+.spinner{
+  width:40px;height:40px;border:3px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin .8s linear infinite;margin:0 auto 14px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{text-align:center;color:var(--text-secondary);font-size:.88rem}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+footer{
+  margin-top:48px;padding:20px 0;
+  border-top:1px solid var(--border);
+  text-align:center;font-size:.78rem;color:var(--text-secondary);
+  transition:border-color .3s;
+}
+footer a{color:var(--text-secondary)}
+footer a:hover{color:var(--accent)}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media(max-width:520px){
+  .brand-text h1{font-size:1rem}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .stat-value{font-size:1.7rem}
+  .timeline{padding-left:28px}
+  .det-icon{left:-22px;width:18px;height:18px;font-size:.6rem}
+  .timeline::before{left:10px}
+  .nav-link{padding:10px 11px;font-size:.78rem}
+  header{top:0}
+  nav{top:67px}
+}
 </style>
 </head>
 <body>
 
+<!-- ── Header ────────────────────────────────────────────────────────────── -->
 <header>
-  <div class="inner">
+  <div class="header-inner">
     <div class="brand">
-      <div class="dot" id="live-dot"></div>
-      <h1>Radio Nova Watcher 🎙️</h1>
+      <svg class="brand-logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <!-- Onde radio -->
+        <path d="M4 20 Q10 8 20 8 Q30 8 36 20" stroke="#E8003D" stroke-width="2.5" stroke-linecap="round" fill="none" opacity=".5"/>
+        <path d="M8 20 Q13 12 20 12 Q27 12 32 20" stroke="#E8003D" stroke-width="2.5" stroke-linecap="round" fill="none" opacity=".75"/>
+        <path d="M12 20 Q15.5 15 20 15 Q24.5 15 28 20" stroke="#E8003D" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        <!-- Micro -->
+        <rect x="17" y="18" width="6" height="10" rx="3" fill="#E8003D"/>
+        <path d="M14 25c0 3.3 2.7 6 6 6s6-2.7 6-6" stroke="#E8003D" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+        <line x1="20" y1="31" x2="20" y2="34" stroke="#E8003D" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="17" y1="34" x2="23" y2="34" stroke="#E8003D" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <div class="brand-text">
+        <h1>Radio Nova Watcher</h1>
+        <p>Surveillance automatique de La Dernière</p>
+      </div>
     </div>
-    <span class="next-session" id="next-label">Calcul en cours…</span>
-    <button id="btn-refresh" onclick="loadData()">↻ Actualiser</button>
+    <div class="header-right">
+      <div class="session-badge" id="session-badge">
+        <span id="badge-text">Calcul…</span>
+      </div>
+      <button class="btn-theme" id="btn-theme" title="Changer le thème" onclick="toggleTheme()">🌙</button>
+      <button class="btn-refresh" onclick="loadData()">↻ Actualiser</button>
+    </div>
   </div>
 </header>
 
+<!-- ── Navbar ─────────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-inner">
+    <button class="nav-link active" onclick="scrollTo('sec-status')">📊 Statut</button>
+    <button class="nav-link" onclick="scrollTo('sec-chart')">📈 Stats</button>
+    <button class="nav-link" onclick="scrollTo('sec-detections')">🎯 Détections</button>
+    <button class="nav-link" onclick="scrollTo('sec-sessions')">📋 Sessions</button>
+  </div>
+</nav>
+
+<!-- ── Content ────────────────────────────────────────────────────────────── -->
 <div class="container">
-  <div id="loader"><div class="spinner"></div>Chargement des données…</div>
-  <div id="error-msg"></div>
-  <div id="content" style="display:none"></div>
+  <div id="loader">
+    <div class="spinner"></div>
+    <p>Chargement des données depuis le Gist…</p>
+  </div>
+  <div class="error-box" id="error-box">
+    <p id="error-msg"></p>
+    <button class="btn-retry" onclick="loadData()">Réessayer</button>
+  </div>
+  <div id="content"></div>
 </div>
 
+<footer>
+  <p>Radio Nova Watcher — <a href="https://github.com/thlsrpro/radio-nova-watcher" target="_blank">Projet open source</a> &nbsp;·&nbsp; <span id="last-updated"></span></p>
+</footer>
+
 <script>
-// ── Configuration ──────────────────────────────────────────────────────────
-const GIST_RAW_URL = "https://gist.githubusercontent.com/ThLsrPro/6ff7e515265e7b6079bb0eff629c6427/raw/b2f467eb2f5ecd4b1acb4474605309a73a58b2e2/sessions.json";
-const LS_KEY = "rnw_sessions_cache";
+// ── Config ───────────────────────────────────────────────────────────────
+const GIST_RAW_URL = "GIST_RAW_URL_PLACEHOLDER";
+const LS_KEY = "rnw_cache";
+const LS_THEME = "theme";
 
-// ── Utilitaires ────────────────────────────────────────────────────────────
-function nextSunday() {
-  const now = new Date();
-  const d = new Date(now);
-  d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7));
-  d.setHours(18, 0, 0, 0);
-  return d;
+// ── Thème ────────────────────────────────────────────────────────────────
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  document.getElementById("btn-theme").textContent = t === "dark" ? "☀️" : "🌙";
+  localStorage.setItem(LS_THEME, t);
 }
-
-function formatDate(iso) {
-  if (!iso) return "—";
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
+function toggleTheme() {
+  applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
 }
+applyTheme(localStorage.getItem(LS_THEME) ?? "light");
 
-function formatDuration(minutes) {
-  const h = Math.floor(minutes / 60);
-  const m = Math.round(minutes % 60);
-  return h > 0 ? `${h}h${m.toString().padStart(2,"0")}` : `${m}min`;
+// ── Navigation ───────────────────────────────────────────────────────────
+function scrollTo(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-
-function confidenceColor(c) {
-  if (c >= 90) return "#22c55e";
-  if (c >= 75) return "#eab308";
-  return "#E8003D";
+// Highlight nav on scroll
+function updateNav() {
+  const sections = ["sec-status","sec-chart","sec-detections","sec-sessions"];
+  const links = document.querySelectorAll(".nav-link");
+  let current = 0;
+  sections.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el && el.getBoundingClientRect().top < 160) current = i;
+  });
+  links.forEach((l, i) => l.classList.toggle("active", i === current));
 }
+window.addEventListener("scroll", updateNav, { passive: true });
 
-function escapeHtml(s) {
-  return String(s)
+// ── Utilitaires ──────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||"")
     .replace(/&/g,"&amp;").replace(/</g,"&lt;")
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
-
-function highlightKeywords(text, kw) {
-  if (!kw || !text) return escapeHtml(text);
-  const escaped = kw.map(k => k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
-  const re = new RegExp(`(${escaped.join("|")})`, "gi");
-  return escapeHtml(text).replace(re, "<mark>$1</mark>");
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const [y,m,d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+function fmtDur(min) {
+  const h = Math.floor(min/60), m = Math.round(min%60);
+  return h > 0 ? `${h}h${String(m).padStart(2,"0")}` : `${m}min`;
+}
+function confColor(c) {
+  if (c >= 90) return "var(--success)";
+  if (c >= 70) return "var(--warning)";
+  return "var(--text-secondary)";
+}
+function confBadge(c) {
+  if (c >= 90) return `<span class="badge-conf badge-high">✓ ${c}%</span>`;
+  if (c >= 70) return `<span class="badge-conf badge-mid">~ ${c}%</span>`;
+  return `<span class="badge-conf badge-low">${c}%</span>`;
+}
+function nextSundayLabel() {
+  const now = new Date();
+  const d = new Date(now);
+  d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7));
+  return d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+}
+function isLiveNow() {
+  const now = new Date();
+  return now.getDay() === 0 && now.getHours() >= 18 && now.getHours() < 20;
+}
+function hlSearch(text, q) {
+  if (!q) return esc(text);
+  const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`, "gi");
+  return esc(text).replace(re, "<mark>$1</mark>");
 }
 
-// ── Mise à jour du header ──────────────────────────────────────────────────
-function updateHeader(sessions) {
-  const ns = nextSunday();
-  const opts = { weekday:"long", day:"numeric", month:"long" };
-  const label = ns.toLocaleDateString("fr-FR", opts) + " à 18h00";
-  const el = document.getElementById("next-label");
-  el.innerHTML = `Prochaine surveillance : <strong>${label}</strong>`;
+// ── Count-up animation ───────────────────────────────────────────────────
+function countUp(el, target, duration = 900) {
+  const start = Date.now();
+  const step = () => {
+    const p = Math.min((Date.now() - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(eased * target);
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
-  // Dot live : on considère "en cours" si aujourd'hui est dimanche et 18h-20h
-  const now = new Date();
-  const isLive = now.getDay() === 0 && now.getHours() >= 18 && now.getHours() < 20;
-  const dot = document.getElementById("live-dot");
-  if (isLive) {
-    dot.classList.add("live");
-    el.innerHTML = `<strong style="color:#E8003D">🔴 Surveillance en cours</strong>`;
+// ── Skeleton ─────────────────────────────────────────────────────────────
+function skeletonHTML() {
+  return `
+    <div class="stats-row" style="margin-top:24px">
+      ${Array(4).fill(`<div class="skeleton-card"><div class="sk-circle skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line-short skeleton"></div></div>`).join("")}
+    </div>
+    ${Array(3).fill(`<div class="skeleton-card" style="margin-top:12px"><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line-short skeleton"></div></div>`).join("")}`;
+}
+
+// ── Header badge ─────────────────────────────────────────────────────────
+function updateBadge() {
+  const badge = document.getElementById("session-badge");
+  const text = document.getElementById("badge-text");
+  if (isLiveNow()) {
+    badge.classList.add("live");
+    badge.innerHTML = `<span class="live-pulse"></span><span>EN DIRECT</span>`;
+  } else {
+    badge.classList.remove("live");
+    text.textContent = `Dim. ${nextSundayLabel()} · 18h`;
   }
 }
 
-// ── Rendu principal ────────────────────────────────────────────────────────
+// ── Render ───────────────────────────────────────────────────────────────
 function render(data) {
-  const sessions = (data.sessions || []).slice().reverse(); // plus récent en premier
-  updateHeader(sessions);
+  const sessions = (data.sessions || []).slice().reverse();
+  updateBadge();
+  const totalDet = sessions.reduce((s,x) => s + (x.detections||[]).length, 0);
+  const totalH   = sessions.reduce((s,x) => s + (x.duration_minutes||0), 0) / 60;
+  const totalCh  = sessions.reduce((s,x) => s + (x.chunks_processed||0), 0);
+  const last     = sessions[0];
 
-  const lastSession = sessions[0];
-  const totalDetections = sessions.reduce((s, x) => s + (x.detections || []).length, 0);
-  const totalHours = sessions.reduce((s, x) => s + (x.duration_minutes || 0), 0) / 60;
+  // Footer date
+  if (data.last_updated || last) {
+    document.getElementById("last-updated").textContent =
+      "Dernière mise à jour : " + (data.last_updated || last?.date || "");
+  }
 
-  let html = "";
+  let html = `<div id="sec-status" style="height:1px;margin-top:-1px"></div>`;
 
   // ── Stat cards ──
-  html += `<div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-value">${sessions.length}</div>
-      <div class="stat-label">Sessions surveillées</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">${totalDetections}</div>
-      <div class="stat-label">Détections totales</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">${totalHours.toFixed(1)}h</div>
-      <div class="stat-label">Heures surveillées</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">${lastSession ? formatDate(lastSession.date) : "—"}</div>
-      <div class="stat-label">Dernière session</div>
-    </div>
+  html += `<div class="stats-row" style="margin-top:24px">
+    <div class="stat-card"><div class="stat-icon">📅</div>
+      <div class="stat-value" id="cnt-sessions">0</div>
+      <div class="stat-label">Sessions</div></div>
+    <div class="stat-card"><div class="stat-icon">🎯</div>
+      <div class="stat-value" id="cnt-detections">0</div>
+      <div class="stat-label">Détections</div></div>
+    <div class="stat-card"><div class="stat-icon">⏱️</div>
+      <div class="stat-value" id="cnt-hours">0</div>
+      <div class="stat-label">Heures surveillées</div></div>
+    <div class="stat-card"><div class="stat-icon">🎵</div>
+      <div class="stat-value" id="cnt-chunks">0</div>
+      <div class="stat-label">Chunks traités</div></div>
   </div>`;
 
-  // ── Graphique ──
-  html += `<div class="section-title">Statistiques par session</div>`;
+  // ── Chart ──
+  html += `<div id="sec-chart" style="height:1px;margin-top:-1px"></div>`;
+  html += `<div class="section-title">📈 Statistiques par session</div>`;
   html += renderChart(sessions);
 
   // ── Détections ──
-  const allDetections = sessions.flatMap(s =>
-    (s.detections || []).map(d => ({ ...d, session_date: s.date }))
+  const allDets = sessions.flatMap(s =>
+    (s.detections||[]).map(d => ({...d, session_date: s.date}))
   );
-  html += `<div class="section-title">Détections (${allDetections.length})</div>`;
-  if (allDetections.length === 0) {
-    html += `<div class="card"><p class="no-data">Aucune détection enregistrée.</p></div>`;
+  html += `<div id="sec-detections" style="height:1px;margin-top:-1px"></div>`;
+  html += `<div class="section-title">🎯 Détections <span style="font-size:.8rem;font-weight:400;color:var(--text-secondary)">(${allDets.length})</span></div>`;
+  if (allDets.length === 0) {
+    html += emptyState("Aucune détection enregistrée pour l'instant", "Continuez la surveillance — une annonce peut arriver à tout moment !");
   } else {
-    allDetections.forEach((d, i) => { html += renderDetection(d, i); });
+    html += `<div class="timeline">`;
+    allDets.forEach((d,i) => { html += renderDetection(d,i); });
+    html += `</div>`;
   }
 
   // ── Sessions ──
-  html += `<div class="section-title">Historique des sessions (${sessions.length})</div>`;
+  html += `<div id="sec-sessions" style="height:1px;margin-top:-1px"></div>`;
+  html += `<div class="section-title">📋 Historique des sessions <span style="font-size:.8rem;font-weight:400;color:var(--text-secondary)">(${sessions.length})</span></div>`;
   if (sessions.length === 0) {
-    html += `<div class="card"><p class="no-data">Aucune session enregistrée.</p></div>`;
+    html += emptyState("Aucune session enregistrée", "Lancez une première surveillance pour voir l'historique ici.");
   } else {
-    sessions.forEach((s, i) => { html += renderSession(s, i); });
+    sessions.forEach((s,i) => { html += renderSession(s,i); });
   }
 
   document.getElementById("content").innerHTML = html;
-  attachListeners();
+
+  // Count-up
+  countUp(document.getElementById("cnt-sessions"), sessions.length);
+  countUp(document.getElementById("cnt-detections"), totalDet);
+  countUp(document.getElementById("cnt-hours"), parseFloat(totalH.toFixed(1)) * 10, 900);
+  // Correct hours display to 1 decimal
+  setTimeout(() => {
+    const el = document.getElementById("cnt-hours");
+    if (el) el.textContent = totalH.toFixed(1);
+  }, 950);
+  countUp(document.getElementById("cnt-chunks"), totalCh);
+
+  // Animate bars and progress fills
+  requestAnimationFrame(() => {
+    document.querySelectorAll(".conf-bar-inner[data-width]").forEach(el => {
+      el.style.width = el.dataset.width + "%";
+    });
+    document.querySelectorAll(".progress-fill[data-width]").forEach(el => {
+      el.style.width = el.dataset.width + "%";
+    });
+    document.querySelectorAll(".bar[data-h]").forEach(el => {
+      el.style.height = el.dataset.h + "px";
+    });
+  });
+
+  attachHandlers();
 }
 
-// ── Graphique barres CSS ───────────────────────────────────────────────────
+// ── Chart ────────────────────────────────────────────────────────────────
 function renderChart(sessions) {
-  const visible = sessions.slice(0, 12).reverse();
-  if (visible.length === 0) return `<div class="card"><p class="no-data">Pas encore de données.</p></div>`;
+  const vis = sessions.slice(0,12).reverse();
+  if (!vis.length) return `<div class="card">${emptyState("Pas encore de données","")}</div>`;
+  const maxCh  = Math.max(...vis.map(s => s.chunks_processed||0), 1);
+  const maxDet = Math.max(...vis.map(s => (s.detections||[]).length), 1);
 
-  const maxChunks = Math.max(...visible.map(s => s.chunks_processed || 0), 1);
-  const maxDet = Math.max(...visible.map(s => (s.detections || []).length), 1);
-
-  const bars = visible.map(s => {
-    const chunks = s.chunks_processed || 0;
-    const dets = (s.detections || []).length;
-    const hChunks = Math.max(4, Math.round((chunks / maxChunks) * 90));
-    const hDet = Math.max(dets > 0 ? 4 : 0, Math.round((dets / maxDet) * 90));
-    const label = (s.date || "").slice(5); // MM-DD
+  const bars = vis.map(s => {
+    const ch = s.chunks_processed||0;
+    const det = (s.detections||[]).length;
+    const hCh  = Math.max(4, Math.round((ch/maxCh)*90));
+    const hDet = Math.max(det?4:0, Math.round((det/maxDet)*90));
+    const lbl  = (s.date||"").slice(5);
     return `<div class="bar-group">
       <div class="bars">
-        <div class="bar bar-chunks" style="height:${hChunks}px" title="${chunks} chunks"></div>
-        <div class="bar bar-detections" style="height:${hDet}px" title="${dets} détections"></div>
+        <div class="bar bar-chunks" style="height:2px" data-h="${hCh}" title="${ch} chunks">
+          <span class="bar-val">${ch}</span>
+        </div>
+        <div class="bar bar-detections" style="height:2px" data-h="${hDet}" title="${det} détections">
+          <span class="bar-val">${det}</span>
+        </div>
       </div>
-      <div class="bar-label">${escapeHtml(label)}</div>
+      <div class="bar-label">${esc(lbl)}</div>
     </div>`;
   }).join("");
 
   return `<div class="card">
     <div class="chart-wrap"><div class="chart">${bars}</div></div>
     <div class="chart-legend">
-      <span><span class="legend-dot" style="background:#444"></span>Chunks traités</span>
-      <span><span class="legend-dot" style="background:#E8003D"></span>Détections</span>
+      <span><span class="legend-dot" style="background:var(--border)"></span>Chunks traités</span>
+      <span><span class="legend-dot" style="background:linear-gradient(180deg,#ff6b6b,var(--accent))"></span>Détections</span>
     </div>
   </div>`;
 }
 
-// ── Rendu détection ────────────────────────────────────────────────────────
+// ── Détection ────────────────────────────────────────────────────────────
 function renderDetection(d, i) {
-  const c = d.confidence || 0;
-  const color = confidenceColor(c);
-  const hasCtx = d.transcription_context && d.transcription_context.trim();
-  return `<div class="detection-card">
-    <div class="det-header">
-      <span class="det-time">${escapeHtml(d.timestamp || "—")}</span>
-      <span class="det-session">Session du ${formatDate(d.session_date)}</span>
-      ${d.notification_sent ? '<span class="badge badge-detected">Notifié ✓</span>' : ''}
+  const c = d.confidence||0;
+  const color = confColor(c);
+  const hasCtx = (d.transcription_context||"").trim();
+  return `<div class="det-entry" id="det-${i}">
+    <div class="det-icon">🎙️</div>
+    <div class="det-card">
+      <div class="det-header">
+        <span class="det-time">${esc(d.timestamp||"—")}</span>
+        <span class="det-session-label">Session du ${fmtDate(d.session_date)}</span>
+        ${d.notification_sent ? '<span class="badge badge-detected">Notifié ✓</span>' : ""}
+      </div>
+      <div class="det-text">${esc(d.extracted_info||"(sans info)")}</div>
+      <div class="confidence-wrap">
+        <div class="confidence-row">
+          <div class="conf-bar-outer">
+            <div class="conf-bar-inner" style="width:0;background:${color}" data-width="${c}"></div>
+          </div>
+          ${confBadge(c)}
+        </div>
+      </div>
+      ${hasCtx ? `<button class="btn-ctx" onclick="toggleCtx(${i})">▶ Contexte des 3 chunks</button>
+        <div class="det-ctx" id="ctx-${i}">${esc(d.transcription_context)}</div>` : ""}
     </div>
-    <div class="det-info">${escapeHtml(d.extracted_info || "(sans info)")}</div>
-    <div class="confidence-bar">
-      <div class="confidence-fill" style="width:${c}%;background:${color}"></div>
-    </div>
-    <div class="confidence-label">Confidence : ${c}%</div>
-    ${hasCtx ? `<button class="toggle-ctx" onclick="toggleCtx(this)">▶ Voir le contexte des 3 chunks</button>
-    <div class="det-context">${escapeHtml(d.transcription_context)}</div>` : ""}
   </div>`;
 }
 
-// ── Rendu session ──────────────────────────────────────────────────────────
+// ── Session ──────────────────────────────────────────────────────────────
 function renderSession(s, i) {
-  const dets = s.detections || [];
-  const hasDetection = dets.length > 0;
-  const transcript = s.full_transcript || [];
-  const badge = hasDetection
-    ? `<span class="badge badge-detected">🎯 ${dets.length} détection${dets.length>1?"s":""} !</span>`
+  const dets = s.detections||[];
+  const tr   = s.full_transcript||[];
+  const hasDet = dets.length > 0;
+  const badge = hasDet
+    ? `<span class="badge badge-detected">🎯 ${dets.length} détection${dets.length>1?"s":""}</span>`
     : `<span class="badge badge-nothing">Rien détecté</span>`;
 
-  const detHtml = dets.map(d => `<div class="detection-card" style="margin-bottom:8px">
-    <div class="det-header">
-      <span class="det-time">${escapeHtml(d.timestamp||"—")}</span>
+  const detCards = dets.map(d => `<div class="det-card" style="margin-bottom:8px">
+    <div class="det-header"><span class="det-time">${esc(d.timestamp||"—")}</span></div>
+    <div class="det-text">${esc(d.extracted_info||"")}</div>
+    <div class="confidence-row" style="margin-top:8px">
+      <div class="conf-bar-outer">
+        <div class="conf-bar-inner" style="width:0;background:${confColor(d.confidence||0)}" data-width="${d.confidence||0}"></div>
+      </div>
+      ${confBadge(d.confidence||0)}
     </div>
-    <div class="det-info">${escapeHtml(d.extracted_info||"")}</div>
-    <div class="confidence-bar">
-      <div class="confidence-fill" style="width:${d.confidence||0}%;background:${confidenceColor(d.confidence||0)}"></div>
-    </div>
-    <div class="confidence-label">Confidence : ${d.confidence||0}%</div>
   </div>`).join("");
 
-  const transcriptId = `tr-${i}`;
-  const detectionsId = `det-${i}`;
-  const searchId = `search-${i}`;
+  const trRows = tr.map((t,j) => `<div class="tr-entry" data-q="${esc((t.text||"").toLowerCase())}">
+    <span class="tr-ts">${esc(t.timestamp||"")}</span>
+    <div class="tr-text">
+      <span class="tr-raw">${esc(t.text||"")}</span>
+      <button class="btn-copy" onclick="copyText(this,'${esc(t.text||"").replace(/'/g,"\\'")}')">Copier</button>
+    </div>
+  </div>`).join("");
 
-  const transcriptHtml = transcript.map(t =>
-    `<div class="transcript-entry" data-text="${escapeHtml((t.text||"").toLowerCase())}">
-      <span class="ts">${escapeHtml(t.timestamp||"")}</span>
-      <span class="tx">${escapeHtml(t.text||"")}</span>
-    </div>`
-  ).join("");
-
-  return `<div class="session-item">
-    <div class="session-header" onclick="toggleSession(this)">
+  return `<div class="session-item" id="sess-${i}">
+    <div class="session-head" onclick="toggleSession(${i})">
       <div class="session-meta">
-        <span class="session-date">${formatDate(s.date)}</span>
-        <span class="session-duration">${formatDuration(s.duration_minutes||0)} · ${s.chunks_processed||0} chunks</span>
+        <span class="session-date">${fmtDate(s.date)}</span>
+        <span class="session-info">${fmtDur(s.duration_minutes||0)} · ${s.chunks_processed||0} chunks · ${s.groq_requests||0} req Groq</span>
         ${badge}
       </div>
-      <span style="color:var(--muted);font-size:.9rem">▼</span>
+      <span class="chevron" id="chev-${i}">▼</span>
     </div>
     <div class="session-body" id="body-${i}">
       <div class="session-actions">
-        ${hasDetection ? `<button class="btn-sm" onclick="togglePanel('${detectionsId}', this)">🎯 Détections</button>` : ""}
-        ${transcript.length > 0 ? `<button class="btn-sm" onclick="togglePanel('${transcriptId}', this)">📝 Transcription (${transcript.length})</button>` : ""}
+        ${hasDet ? `<button class="btn-sm" id="btn-det-${i}" onclick="togglePanel('det-panel-${i}','btn-det-${i}')">🎯 Détections (${dets.length})</button>` : ""}
+        ${tr.length ? `<button class="btn-sm" id="btn-tr-${i}" onclick="togglePanel('tr-panel-${i}','btn-tr-${i}')">📝 Transcription (${tr.length})</button>` : ""}
       </div>
-      <div class="card" id="${detectionsId}" style="display:none">
-        ${detHtml || '<p class="no-data">Aucune détection.</p>'}
-      </div>
-      <div id="${transcriptId}" style="display:none">
-        <input type="text" class="search-box" id="${searchId}"
-               placeholder="Rechercher dans la transcription…"
-               oninput="filterTranscript('${transcriptId}', '${searchId}')">
-        <div class="transcript-list">${transcriptHtml || '<p class="no-data">Transcription vide.</p>'}</div>
-      </div>
+      ${hasDet ? `<div id="det-panel-${i}" style="display:none">${detCards}</div>` : ""}
+      ${tr.length ? `<div id="tr-panel-${i}" style="display:none">
+        <div class="search-wrap">
+          <input class="search-box" type="text" placeholder="Rechercher dans la transcription…"
+                 oninput="filterTr(${i},this.value)" id="srch-${i}">
+          <button class="search-clear" id="clr-${i}" onclick="clearSearch(${i})">✕</button>
+        </div>
+        <div class="transcript-list">${trRows||'<p style="color:var(--text-secondary);font-size:.85rem">Aucune transcription.</p>'}</div>
+      </div>` : ""}
     </div>
   </div>`;
 }
 
-// ── Interactions ───────────────────────────────────────────────────────────
-function attachListeners() {}
-
-function toggleSession(header) {
-  const i = header.parentElement.querySelector('[id^="body-"]').id.split("-")[1];
-  const body = document.getElementById(`body-${i}`);
-  const arrow = header.querySelector("span:last-child");
-  body.classList.toggle("open");
-  arrow.textContent = body.classList.contains("open") ? "▲" : "▼";
+// ── Empty state ──────────────────────────────────────────────────────────
+function emptyState(title, sub) {
+  return `<div class="empty-state">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2" opacity=".3"/>
+      <path d="M22 32h20M28 24l8 8-8 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity=".4"/>
+    </svg>
+    <p><strong>${esc(title)}</strong></p>
+    ${sub ? `<p style="margin-top:6px;font-size:.82rem">${esc(sub)}</p>` : ""}
+  </div>`;
 }
 
-function togglePanel(id, btn) {
-  const el = document.getElementById(id);
-  const visible = el.style.display !== "none";
-  el.style.display = visible ? "none" : "block";
-  btn.classList.toggle("active", !visible);
+// ── Interactions ─────────────────────────────────────────────────────────
+function attachHandlers() {}
+
+function toggleSession(i) {
+  const body  = document.getElementById(`body-${i}`);
+  const chev  = document.getElementById(`chev-${i}`);
+  const open  = body.classList.toggle("open");
+  chev.classList.toggle("open", open);
+  if (open) {
+    // Animate conf bars inside the opened session
+    requestAnimationFrame(() => {
+      body.querySelectorAll(".conf-bar-inner[data-width]").forEach(el => {
+        el.style.width = el.dataset.width + "%";
+      });
+    });
+  }
 }
 
-function toggleCtx(btn) {
-  const ctx = btn.nextElementSibling;
-  ctx.classList.toggle("open");
-  btn.textContent = ctx.classList.contains("open")
-    ? "▼ Masquer le contexte" : "▶ Voir le contexte des 3 chunks";
+function togglePanel(id, btnId) {
+  const el  = document.getElementById(id);
+  const btn = document.getElementById(btnId);
+  const vis = el.style.display !== "none";
+  el.style.display = vis ? "none" : "block";
+  btn.classList.toggle("active", !vis);
+  if (!vis) {
+    requestAnimationFrame(() => {
+      el.querySelectorAll(".conf-bar-inner[data-width]").forEach(e => {
+        e.style.width = e.dataset.width + "%";
+      });
+    });
+  }
 }
 
-function filterTranscript(containerId, searchId) {
-  const query = document.getElementById(searchId).value.toLowerCase().trim();
-  const container = document.getElementById(containerId);
-  container.querySelectorAll(".transcript-entry").forEach(row => {
-    const text = row.dataset.text || "";
-    row.classList.toggle("hidden", query.length > 0 && !text.includes(query));
-    // Mise en évidence
-    const tx = row.querySelector(".tx");
-    const raw = tx.textContent;
-    if (query && text.includes(query)) {
-      const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`, "gi");
-      tx.innerHTML = escapeHtml(raw).replace(re, "<mark>$1</mark>");
-    } else {
-      tx.innerHTML = escapeHtml(raw);
-    }
+function toggleCtx(i) {
+  const ctx = document.getElementById(`ctx-${i}`);
+  const btn = ctx.previousElementSibling;
+  const open = ctx.classList.toggle("open");
+  btn.textContent = open ? "▼ Masquer le contexte" : "▶ Contexte des 3 chunks";
+}
+
+function filterTr(i, q) {
+  const norm = q.toLowerCase().trim();
+  const clr = document.getElementById(`clr-${i}`);
+  if (clr) clr.style.display = norm ? "block" : "none";
+  const panel = document.getElementById(`tr-panel-${i}`);
+  if (!panel) return;
+  panel.querySelectorAll(".tr-entry").forEach(row => {
+    const txt = row.dataset.q || "";
+    const match = !norm || txt.includes(norm);
+    row.classList.toggle("hidden", !match);
+    const span = row.querySelector(".tr-raw");
+    if (span) span.innerHTML = norm && match ? hlSearch(span.textContent, norm) : esc(span.textContent);
   });
 }
 
-// ── Chargement des données ─────────────────────────────────────────────────
+function clearSearch(i) {
+  const inp = document.getElementById(`srch-${i}`);
+  if (inp) { inp.value = ""; filterTr(i, ""); }
+}
+
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = "✓";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Copier"; btn.classList.remove("copied"); }, 1500);
+  }).catch(() => {});
+}
+
+// ── Chargement données ───────────────────────────────────────────────────
 async function loadData() {
-  const loader = document.getElementById("loader");
-  const errorEl = document.getElementById("error-msg");
-  const content = document.getElementById("content");
+  document.getElementById("loader").style.display = "block";
+  document.getElementById("content").innerHTML = skeletonHTML();
+  document.getElementById("content").style.opacity = ".5";
+  document.getElementById("error-box").style.display = "none";
 
-  loader.style.display = "block";
-  content.style.display = "none";
-  errorEl.style.display = "none";
-
-  // Essayer depuis le Gist
   if (GIST_RAW_URL && GIST_RAW_URL !== "GIST_RAW_URL_PLACEHOLDER") {
     try {
-      // Ajouter un cache-buster pour éviter le cache navigateur
-      const url = GIST_RAW_URL + "?t=" + Date.now();
-      const resp = await fetch(url);
+      const resp = await fetch(GIST_RAW_URL + "?t=" + Date.now());
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       localStorage.setItem(LS_KEY, JSON.stringify(data));
-      loader.style.display = "none";
-      content.style.display = "block";
-      render(data);
+      finish(data, false);
       return;
-    } catch (e) {
-      console.warn("Fetch Gist échoué :", e);
-    }
+    } catch(e) { console.warn("Gist fetch failed:", e); }
   }
 
-  // Fallback : localStorage
   const cached = localStorage.getItem(LS_KEY);
   if (cached) {
     try {
-      const data = JSON.parse(cached);
-      loader.style.display = "none";
-      content.style.display = "block";
-      errorEl.style.display = "block";
-      errorEl.textContent = "⚠️ Données hors-ligne (cache local) — impossible de joindre le Gist.";
-      render(data);
+      finish(JSON.parse(cached), true);
       return;
-    } catch (_) {}
+    } catch(_) {}
   }
 
-  // Aucune donnée
-  loader.style.display = "none";
-  errorEl.style.display = "block";
-  if (!GIST_RAW_URL || GIST_RAW_URL === "GIST_RAW_URL_PLACEHOLDER") {
-    errorEl.textContent = "⚙️ Dashboard non encore configuré — lancez une première session puis poussez sur GitHub.";
-  } else {
-    errorEl.textContent = "❌ Impossible de charger les données. Vérifiez que le Gist est accessible.";
-  }
-  content.style.display = "block";
+  // No data at all
+  document.getElementById("loader").style.display = "none";
+  document.getElementById("content").innerHTML = "";
+  document.getElementById("content").style.opacity = "1";
+  const box = document.getElementById("error-box");
+  box.style.display = "flex";
+  document.getElementById("error-msg").textContent = GIST_RAW_URL === "GIST_RAW_URL_PLACEHOLDER"
+    ? "⚙️ Dashboard non encore configuré — lancez une première session avec GIST_ENABLED=true."
+    : "❌ Impossible de charger les données. Vérifiez que le Gist est accessible.";
   render({ sessions: [] });
 }
 
-// ── Init ───────────────────────────────────────────────────────────────────
+function finish(data, fromCache) {
+  document.getElementById("loader").style.display = "none";
+  document.getElementById("content").style.opacity = "1";
+  if (fromCache) {
+    const box = document.getElementById("error-box");
+    box.style.display = "flex";
+    document.getElementById("error-msg").textContent = "⚠️ Données depuis le cache local — Gist inaccessible.";
+  }
+  render(data);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────
 loadData();
 </script>
 </body>
