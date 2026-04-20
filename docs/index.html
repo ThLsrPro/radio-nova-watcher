@@ -273,43 +273,81 @@ nav::-webkit-scrollbar{height:0}
 }
 .det-ctx.open{display:block}
 
-/* ── Sessions ────────────────────────────────────────────────────────────── */
-.session-item{
-  border:1px solid var(--border);border-radius:var(--radius);
-  margin-bottom:8px;overflow:hidden;
+/* ── Session list (cards) ────────────────────────────────────────────────── */
+.session-card{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 16px;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);margin-bottom:8px;
+  cursor:pointer;user-select:none;
   box-shadow:0 1px 4px var(--shadow);
-  transition:border-color .15s;
+  transition:border-color .15s,box-shadow .15s;
 }
-.session-item:hover{border-color:#c7c7cc}
-[data-theme="dark"] .session-item:hover{border-color:#636366}
-.session-head{
-  display:flex;align-items:center;justify-content:space-between;
-  flex-wrap:wrap;gap:8px;padding:13px 16px;
-  background:var(--bg-card);cursor:pointer;
-  user-select:none;transition:background .15s;
-}
-.session-head:hover{background:var(--bg-primary)}
-.session-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.session-date{font-weight:600;font-size:.9rem}
-.session-info{font-size:.77rem;color:var(--text-secondary)}
+.session-card:hover{border-color:#c7c7cc;box-shadow:0 3px 12px var(--shadow)}
+[data-theme="dark"] .session-card:hover{border-color:#636366}
+.sc-left{min-width:0;flex:1}
+.sc-date{font-weight:600;font-size:.9rem}
+.sc-meta{font-size:.75rem;color:var(--text-secondary);margin-top:2px}
+.sc-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sc-arrow{color:var(--text-secondary);font-size:1.1rem;opacity:.5}
 .badge{font-size:.67rem;font-weight:600;padding:2px 8px;border-radius:10px;border:1px solid}
 .badge-detected{color:var(--success);background:rgba(52,199,89,.08);border-color:rgba(52,199,89,.25)}
 .badge-nothing{color:var(--text-secondary);background:var(--bg-primary);border-color:var(--border)}
-.chevron{color:var(--text-secondary);font-size:.72rem;transition:transform .2s}
-.chevron.open{transform:rotate(180deg)}
-.session-body{display:none;padding:14px 16px;border-top:1px solid var(--border)}
-.session-body.open{display:block}
-.session-actions{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+
+/* ── Session detail view ─────────────────────────────────────────────────── */
+.sess-back-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  background:none;border:none;
+  color:var(--accent);font-size:.82rem;font-weight:500;
+  padding:0;margin-bottom:18px;
+  transition:opacity .15s;
+}
+.sess-back-btn:hover{opacity:.7}
+.sess-detail-title{font-size:1.1rem;font-weight:600;margin-bottom:6px}
+.sess-mini-stats{
+  display:flex;flex-wrap:wrap;align-items:center;
+  gap:0;font-size:.78rem;color:var(--text-secondary);
+}
+.sess-mini-stats strong{color:var(--text-primary)}
+.sess-mini-sep{margin:0 8px;opacity:.35}
+
+/* ── Sub-tabs ────────────────────────────────────────────────────────────── */
+.sub-tabs{
+  display:flex;gap:0;
+  border-bottom:1px solid var(--border);
+  margin:18px 0 16px;
+}
+.sub-tab{
+  padding:8px 14px;font-size:.82rem;font-weight:500;
+  color:var(--text-secondary);border:none;background:none;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:color .15s,border-color .15s;
+}
+.sub-tab:hover{color:var(--text-primary)}
+.sub-tab.active{color:var(--text-primary);border-bottom-color:var(--accent)}
+
+/* ── Shared utilities ────────────────────────────────────────────────────── */
 .btn-sm{
   background:var(--bg-primary);border:1px solid var(--border);
   color:var(--text-secondary);border-radius:6px;
   padding:5px 11px;font-size:.75rem;font-weight:500;
-  transition:border-color .15s,color .15s,background .15s;
+  transition:border-color .15s,color .15s,background .15s;white-space:nowrap;
 }
 .btn-sm:hover,.btn-sm.active{border-color:var(--accent);color:var(--accent);background:rgba(232,0,61,.04)}
+.btn-sm:disabled{opacity:.4;cursor:default}
+.btn-icon{
+  background:none;border:1px solid var(--border);
+  color:var(--text-secondary);border-radius:5px;
+  width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.8rem;flex-shrink:0;
+  transition:border-color .15s,color .15s;
+}
+.btn-icon:hover:not(:disabled){border-color:var(--text-primary);color:var(--text-primary)}
+.btn-icon:disabled{opacity:.3;cursor:default}
 
-/* ── Transcription ───────────────────────────────────────────────────────── */
-.search-wrap{position:relative;margin-bottom:8px}
+/* ── Search box ──────────────────────────────────────────────────────────── */
+.search-wrap{position:relative}
 .search-box{
   width:100%;padding:7px 30px 7px 10px;
   background:var(--bg-primary);border:1px solid var(--border);
@@ -321,30 +359,47 @@ nav::-webkit-scrollbar{height:0}
   position:absolute;right:9px;top:50%;transform:translateY(-50%);
   background:none;border:none;color:var(--text-secondary);font-size:.75rem;display:none;
 }
-.transcript-list{max-height:300px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-.transcript-list::-webkit-scrollbar{width:3px}
-.transcript-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-.tr-entry{
-  display:flex;gap:10px;padding:5px 0;
-  border-bottom:1px solid var(--border);font-size:.79rem;
-  font-family:var(--mono);
+
+/* ── Transcript full view ────────────────────────────────────────────────── */
+.tr-toolbar{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  margin-bottom:10px;
 }
-.tr-entry:last-child{border-bottom:none}
-.tr-ts{color:var(--text-secondary);flex-shrink:0;width:62px}
-.tr-text{flex:1;word-break:break-word;padding-right:28px;position:relative}
-.btn-copy{
-  position:absolute;right:0;top:0;
-  background:none;border:1px solid var(--border);
-  color:var(--text-secondary);border-radius:3px;
-  padding:1px 5px;font-size:.64rem;opacity:0;
-  transition:opacity .15s;
+.hit-count{
+  font-size:.72rem;color:var(--text-secondary);
+  white-space:nowrap;min-width:70px;flex-shrink:0;
 }
-.tr-entry:hover .btn-copy{opacity:1}
-.btn-copy:hover{color:var(--text-primary)}
-.btn-copy.copied{color:var(--success);border-color:var(--success)}
-mark{background:rgba(255,200,0,.35);color:inherit;border-radius:2px;padding:0 1px}
-[data-theme="dark"] mark{background:rgba(255,200,0,.2)}
-.tr-entry.hidden{display:none}
+.transcript-block{
+  background:var(--bg-primary);border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  max-height:520px;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+  padding:6px 12px;
+}
+.transcript-block::-webkit-scrollbar{width:3px}
+.transcript-block::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.tr-full-entry{
+  display:flex;gap:10px;padding:4px 0;
+  border-bottom:1px solid transparent;
+  font-size:.8rem;font-family:var(--mono);line-height:1.5;
+  transition:opacity .1s;
+}
+.tr-full-entry:last-child{border-bottom:none}
+.tr-full-entry.dimmed{opacity:.25}
+.tr-full-entry.current-hit{
+  background:rgba(255,200,0,.1);
+  border-radius:4px;padding:4px 6px;margin:0 -6px;
+}
+[data-theme="dark"] .tr-full-entry.current-hit{background:rgba(255,200,0,.07)}
+.tr-ts{color:var(--text-secondary);flex-shrink:0;width:76px;font-size:.75rem}
+.tr-body{flex:1;word-break:break-word;color:var(--text-primary)}
+mark{background:rgba(255,200,0,.38);color:inherit;border-radius:2px;padding:0 1px}
+[data-theme="dark"] mark{background:rgba(255,200,0,.22)}
+.tr-load-more{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:12px 0 4px;
+}
+.tr-count-label{font-size:.72rem;color:var(--text-secondary)}
 
 /* ── Empty / Error ───────────────────────────────────────────────────────── */
 .empty-state{text-align:center;padding:40px 20px}
@@ -392,6 +447,8 @@ footer a:hover{color:var(--text-primary)}
   .timeline::before{left:8px}
   .nav-link{padding:9px 10px;font-size:.77rem}
   nav{top:51px}
+  .tr-toolbar{gap:4px}
+  .btn-sm{padding:4px 8px;font-size:.71rem}
 }
 </style>
 </head>
@@ -402,9 +459,7 @@ footer a:hover{color:var(--text-primary)}
   <div class="header-inner">
     <div class="brand">
       <svg class="brand-logo" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <!-- dot of the "i" — accent color -->
         <circle cx="15" cy="8" r="3.5" fill="#E8003D" class="logo-dot"/>
-        <!-- stem of the "i" -->
         <rect x="12.5" y="14" width="5" height="12" rx="2.5" fill="#3a3a3c" class="logo-stem"/>
       </svg>
       <div class="brand-text">
@@ -455,11 +510,21 @@ const GIST_RAW_URL = "GIST_RAW_URL_PLACEHOLDER";
 const LS_KEY   = "rnw_cache";
 const LS_THEME = "theme";
 
+// ── Session state ─────────────────────────────────────────────────────────
+let _allSessions = [];
+let _detailIdx   = -1;        // -1 = liste, ≥0 = détail de cette session
+let _detailTab   = "transcript"; // "transcript" | "detections"
+let _trQuery     = "";
+let _trHits      = [];        // indices de chunks correspondants
+let _trHitsSet   = new Set();
+let _trCursor    = 0;         // index dans _trHits courant
+let _trShown     = 50;        // chunks visibles (pagination)
+const TR_PAGE    = 50;
+
 // ── Thème ─────────────────────────────────────────────────────────────────
 function applyTheme(t) {
   document.documentElement.setAttribute("data-theme", t);
   document.getElementById("btn-theme").textContent = t === "dark" ? "☀️" : "🌙";
-  // Adapt logo colors to theme
   const dot  = document.querySelector(".logo-dot");
   const stem = document.querySelector(".logo-stem");
   if (dot)  dot.setAttribute("fill",  t === "dark" ? "#ff375f" : "#E8003D");
@@ -498,6 +563,12 @@ function fmtDate(iso) {
   if (!iso) return "—";
   const [y,m,d] = iso.split("-");
   return `${d}/${m}/${y}`;
+}
+function fmtDateFull(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso + "T12:00:00");
+  const s = d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 function fmtDur(min) {
   const h = Math.floor(min/60), m = Math.round(min%60);
@@ -561,14 +632,21 @@ function updateBadge() {
   }
 }
 
-// ── Render ────────────────────────────────────────────────────────────────
+// ── Render principal ──────────────────────────────────────────────────────
 function render(data) {
-  const sessions = (data.sessions || []).slice().reverse();
+  _allSessions = (data.sessions || []).slice().reverse();
+  _detailIdx   = -1;
+  _trQuery     = "";
+  _trHits      = [];
+  _trHitsSet   = new Set();
+  _trCursor    = 0;
+  _trShown     = TR_PAGE;
+
   updateBadge();
-  const totalDet = sessions.reduce((s,x) => s + (x.detections||[]).length, 0);
-  const totalH   = sessions.reduce((s,x) => s + (x.duration_minutes||0), 0) / 60;
-  const totalCh  = sessions.reduce((s,x) => s + (x.chunks_processed||0), 0);
-  const last     = sessions[0];
+  const totalDet = _allSessions.reduce((s,x) => s + (x.detections||[]).length, 0);
+  const totalH   = _allSessions.reduce((s,x) => s + (x.duration_minutes||0), 0) / 60;
+  const totalCh  = _allSessions.reduce((s,x) => s + (x.chunks_processed||0), 0);
+  const last     = _allSessions[0];
 
   if (data.last_updated || last) {
     document.getElementById("last-updated").textContent =
@@ -577,7 +655,7 @@ function render(data) {
 
   let html = `<div id="sec-status" style="height:1px;margin-top:-1px"></div>`;
 
-  // ── Stat cards ──
+  // Stat cards
   html += `<div class="stats-row" style="margin-top:28px">
     <div class="stat-card">
       <div class="stat-icon">Sessions</div>
@@ -601,13 +679,13 @@ function render(data) {
     </div>
   </div>`;
 
-  // ── Chart ──
+  // Chart
   html += `<div id="sec-chart" style="height:1px;margin-top:-1px"></div>`;
   html += `<div class="section-title">Statistiques par session</div>`;
-  html += renderChart(sessions);
+  html += renderChart(_allSessions);
 
-  // ── Détections ──
-  const allDets = sessions.flatMap(s =>
+  // Détections globales
+  const allDets = _allSessions.flatMap(s =>
     (s.detections||[]).map(d => ({...d, session_date: s.date}))
   );
   html += `<div id="sec-detections" style="height:1px;margin-top:-1px"></div>`;
@@ -620,19 +698,14 @@ function render(data) {
     html += `</div>`;
   }
 
-  // ── Sessions ──
+  // Sessions
   html += `<div id="sec-sessions" style="height:1px;margin-top:-1px"></div>`;
-  html += `<div class="section-title">Historique <span style="font-weight:400">(${sessions.length} sessions)</span></div>`;
-  if (sessions.length === 0) {
-    html += emptyState("Aucune session enregistrée", "Lancez une première surveillance pour voir l'historique ici.");
-  } else {
-    sessions.forEach((s,i) => { html += renderSession(s,i); });
-  }
+  html += `<div id="sessions-container">${buildSessionsContent()}</div>`;
 
   document.getElementById("content").innerHTML = html;
 
   // Count-up
-  countUp(document.getElementById("cnt-sessions"), sessions.length);
+  countUp(document.getElementById("cnt-sessions"), _allSessions.length);
   countUp(document.getElementById("cnt-detections"), totalDet);
   countUp(document.getElementById("cnt-hours"), parseFloat(totalH.toFixed(1)) * 10, 800);
   setTimeout(() => {
@@ -645,15 +718,299 @@ function render(data) {
     document.querySelectorAll(".conf-bar-inner[data-width]").forEach(el => {
       el.style.width = el.dataset.width + "%";
     });
-    document.querySelectorAll(".progress-fill[data-width]").forEach(el => {
-      el.style.width = el.dataset.width + "%";
-    });
     document.querySelectorAll(".bar[data-h]").forEach(el => {
       el.style.height = el.dataset.h + "px";
     });
   });
+}
 
-  attachHandlers();
+// ── Sessions : contenu dynamique ──────────────────────────────────────────
+function buildSessionsContent() {
+  if (_detailIdx === -1) {
+    let h = `<div class="section-title">Historique <span style="font-weight:400">(${_allSessions.length} sessions)</span></div>`;
+    if (_allSessions.length === 0) {
+      h += emptyState(
+        "Aucune session enregistrée pour le moment.",
+        "Les sessions apparaîtront ici après la première surveillance du dimanche."
+      );
+    } else {
+      h += _allSessions.map((s,i) => buildSessionCard(s,i)).join("");
+    }
+    return h;
+  }
+  return buildSessionDetail(_allSessions[_detailIdx]);
+}
+
+function refreshSessionsContainer() {
+  const c = document.getElementById("sessions-container");
+  if (c) c.innerHTML = buildSessionsContent();
+}
+
+// ── Ouverture / fermeture du détail ───────────────────────────────────────
+function openSession(i) {
+  _detailIdx = i;
+  _detailTab = "transcript";
+  _trQuery   = "";
+  _trHits    = [];
+  _trHitsSet = new Set();
+  _trCursor  = 0;
+  _trShown   = TR_PAGE;
+  refreshSessionsContainer();
+  setTimeout(() => scrollTo("sec-sessions"), 50);
+}
+
+function closeSession() {
+  _detailIdx = -1;
+  refreshSessionsContainer();
+  setTimeout(() => scrollTo("sec-sessions"), 50);
+}
+
+function switchDetailTab(tab) {
+  _detailTab = tab;
+  document.querySelectorAll(".sub-tab").forEach((t,i) => {
+    t.classList.toggle("active", (i === 0) === (tab === "transcript"));
+  });
+  const tr  = document.getElementById("tab-transcript");
+  const det = document.getElementById("tab-detections");
+  if (tr)  tr.style.display  = tab === "transcript"  ? "" : "none";
+  if (det) det.style.display = tab === "detections"  ? "" : "none";
+}
+
+// ── Session card (liste) ──────────────────────────────────────────────────
+function buildSessionCard(s, i) {
+  const dets   = s.detections || [];
+  const hasDet = dets.length > 0;
+  const badge  = hasDet
+    ? `<span class="badge badge-detected">${dets.length} détection${dets.length>1?"s":""}</span>`
+    : `<span class="badge badge-nothing">Rien détecté</span>`;
+  return `<div class="session-card" onclick="openSession(${i})">
+    <div class="sc-left">
+      <div class="sc-date">${esc(fmtDateFull(s.date))}</div>
+      <div class="sc-meta">${fmtDur(s.duration_minutes||0)} · ${s.chunks_processed||0} chunks · ${s.groq_requests||0} req Groq</div>
+    </div>
+    <div class="sc-right">
+      ${badge}
+      <span class="sc-arrow">›</span>
+    </div>
+  </div>`;
+}
+
+// ── Session détail ────────────────────────────────────────────────────────
+function buildSessionDetail(s) {
+  const dets = s.detections || [];
+  const tr   = s.full_transcript || [];
+  return `
+    <button class="sess-back-btn" onclick="closeSession()">← Sessions</button>
+    <div class="sess-detail-title">${esc(fmtDateFull(s.date))}</div>
+    <div class="sess-mini-stats">
+      <span><strong>${fmtDur(s.duration_minutes||0)}</strong> de surveillance</span>
+      <span class="sess-mini-sep">·</span>
+      <span><strong>${s.chunks_processed||0}</strong> chunks</span>
+      <span class="sess-mini-sep">·</span>
+      <span><strong>${dets.length}</strong> détection${dets.length!==1?"s":""}</span>
+      <span class="sess-mini-sep">·</span>
+      <span><strong>${s.groq_requests||0}</strong> req Groq</span>
+    </div>
+    <div class="sub-tabs">
+      <button class="sub-tab${_detailTab==="transcript"?" active":""}" onclick="switchDetailTab('transcript')">Transcription (${tr.length})</button>
+      <button class="sub-tab${_detailTab==="detections"?" active":""}" onclick="switchDetailTab('detections')">Détections (${dets.length})</button>
+    </div>
+    <div id="tab-transcript" ${_detailTab!=="transcript"?'style="display:none"':""}>
+      ${buildTranscriptPanel(tr, s)}
+    </div>
+    <div id="tab-detections" ${_detailTab!=="detections"?'style="display:none"':""}>
+      ${buildDetectionsPanel(dets)}
+    </div>`;
+}
+
+// ── Panneau transcription ─────────────────────────────────────────────────
+function buildTranscriptPanel(tr, s) {
+  const hasQuery   = !!_trQuery;
+  const hitCount   = _trHits.length;
+  const navDisable = !hasQuery || hitCount === 0;
+  const prevDis    = navDisable || _trCursor === 0;
+  const nextDis    = navDisable || _trCursor >= hitCount - 1;
+
+  let hitLabel = "";
+  if (hasQuery) {
+    hitLabel = hitCount === 0 ? "Aucun résultat" : `${_trCursor+1} / ${hitCount}`;
+  }
+
+  const toolbar = `<div class="tr-toolbar">
+    <div class="search-wrap" style="flex:1;min-width:120px">
+      <input class="search-box" type="text" id="tr-search"
+             placeholder="Rechercher dans la transcription…"
+             value="${esc(_trQuery)}"
+             oninput="onTrSearch(this.value)">
+      <button class="search-clear" id="tr-clr" style="${hasQuery?"display:block":""}" onclick="clearTrSearch()">✕</button>
+    </div>
+    <span class="hit-count" id="hit-count" style="${hasQuery?"":"visibility:hidden"}">${esc(hitLabel)}</span>
+    <button class="btn-icon" id="tr-prev" onclick="navigateTrHit(-1)" title="Résultat précédent" ${prevDis?"disabled":""}>↑</button>
+    <button class="btn-icon" id="tr-next" onclick="navigateTrHit(1)"  title="Résultat suivant"   ${nextDis?"disabled":""}>↓</button>
+    <button class="btn-sm" id="btn-copy-all" onclick="copyAllTranscript()">Copier tout</button>
+    <button class="btn-sm" onclick="downloadTranscript()">Télécharger .txt</button>
+  </div>`;
+
+  if (tr.length === 0) {
+    return toolbar + emptyState("Aucune transcription disponible", "");
+  }
+
+  return toolbar + `<div class="transcript-block" id="tr-full-content">${buildTrEntries(tr)}</div>`;
+}
+
+// ── Entrées transcription ─────────────────────────────────────────────────
+function buildTrEntries(tr) {
+  const hasQuery  = !!_trQuery;
+  // Sans recherche : pagination. Avec recherche : tout afficher
+  const visible   = hasQuery ? tr : tr.slice(0, _trShown);
+  let html = visible.map((t, rawIdx) => {
+    // rawIdx est l'index dans `visible`, pas dans `tr` – recalcule
+    const chunkIdx = hasQuery ? rawIdx : rawIdx; // pour le set
+    // Trouver le vrai index dans tr si on cherche
+    const trueIdx  = hasQuery ? tr.indexOf(t) : rawIdx;
+    const isHit    = _trHitsSet.has(trueIdx);
+    const isCurrent = hasQuery && _trHits[_trCursor] === trueIdx;
+    const cls = ["tr-full-entry", isCurrent ? "current-hit" : "", (hasQuery && !isHit) ? "dimmed" : ""].filter(Boolean).join(" ");
+    const body = (hasQuery && isHit) ? hlSearch(t.text||"", _trQuery) : esc(t.text||"");
+    return `<div class="${cls}" data-idx="${trueIdx}">
+      <span class="tr-ts">[${esc(t.timestamp||"")}]</span>
+      <span class="tr-body">${body || '<span style="opacity:.4">(silence)</span>'}</span>
+    </div>`;
+  }).join("");
+
+  if (!hasQuery && tr.length > _trShown) {
+    const remaining = tr.length - _trShown;
+    html += `<div class="tr-load-more">
+      <button class="btn-sm" onclick="loadMoreTr()">Voir ${Math.min(remaining, TR_PAGE)} de plus</button>
+      <span class="tr-count-label">${_trShown} / ${tr.length} affichés</span>
+    </div>`;
+  }
+  return html;
+}
+
+// ── Panneau détections de la session ─────────────────────────────────────
+function buildDetectionsPanel(dets) {
+  if (dets.length === 0) {
+    return emptyState("Aucune détection dans cette session", "");
+  }
+  return dets.map((d,i) => `<div class="det-card" style="margin-bottom:10px">
+    <div class="det-header">
+      <span class="det-time">${esc(d.timestamp||"—")}</span>
+      ${d.notification_sent ? '<span style="font-size:.8rem;color:var(--text-secondary)">✉️ Notifié</span>' : ""}
+    </div>
+    <div class="det-text">${esc(d.extracted_info||"(sans info)")}</div>
+    <div class="confidence-row" style="margin-top:8px">
+      <div class="conf-bar-outer">
+        <div class="conf-bar-inner" style="width:${d.confidence||0}%;background:${confColor(d.confidence||0)}"></div>
+      </div>
+      ${confBadge(d.confidence||0)}
+    </div>
+    ${(d.transcription_context||"").trim() ? `
+      <button class="btn-ctx" onclick="toggleSessDetCtx(${i})">▶ Contexte complet</button>
+      <div class="det-ctx" id="sdc-${i}">${esc(d.transcription_context)}</div>` : ""}
+  </div>`).join("");
+}
+
+// ── Recherche dans la transcription ──────────────────────────────────────
+function computeTrHits() {
+  if (!_trQuery || _detailIdx < 0) {
+    _trHits    = [];
+    _trHitsSet = new Set();
+    return;
+  }
+  const tr  = _allSessions[_detailIdx].full_transcript || [];
+  _trHits   = [];
+  for (let i = 0; i < tr.length; i++) {
+    if ((tr[i].text || "").toLowerCase().includes(_trQuery)) _trHits.push(i);
+  }
+  _trHitsSet = new Set(_trHits);
+}
+
+function onTrSearch(q) {
+  _trQuery  = q.trim().toLowerCase();
+  _trCursor = 0;
+  _trShown  = TR_PAGE;
+  computeTrHits();
+  rerenderTrContent();
+  // Update toolbar controls
+  const clr = document.getElementById("tr-clr");
+  if (clr) clr.style.display = _trQuery ? "block" : "none";
+}
+
+function clearTrSearch() {
+  const inp = document.getElementById("tr-search");
+  if (inp) inp.value = "";
+  onTrSearch("");
+}
+
+function navigateTrHit(dir) {
+  if (_trHits.length === 0) return;
+  _trCursor = Math.max(0, Math.min(_trHits.length - 1, _trCursor + dir));
+  rerenderTrContent();
+}
+
+function loadMoreTr() {
+  _trShown += TR_PAGE;
+  rerenderTrContent();
+}
+
+function rerenderTrContent() {
+  if (_detailIdx < 0) return;
+  const tr  = _allSessions[_detailIdx].full_transcript || [];
+  const cnt = document.getElementById("tr-full-content");
+  if (cnt) cnt.innerHTML = buildTrEntries(tr);
+
+  // Update hit count label
+  const hitEl  = document.getElementById("hit-count");
+  const prevEl = document.getElementById("tr-prev");
+  const nextEl = document.getElementById("tr-next");
+  if (hitEl) {
+    if (!_trQuery) {
+      hitEl.style.visibility = "hidden";
+    } else {
+      hitEl.style.visibility = "";
+      hitEl.textContent = _trHits.length === 0 ? "Aucun résultat" : `${_trCursor+1} / ${_trHits.length}`;
+    }
+  }
+  if (prevEl) prevEl.disabled = !_trQuery || _trHits.length === 0 || _trCursor === 0;
+  if (nextEl) nextEl.disabled = !_trQuery || _trHits.length === 0 || _trCursor >= _trHits.length - 1;
+
+  // Scroll to current hit
+  if (_trHits.length > 0) {
+    const currentIdx = _trHits[_trCursor];
+    const el = document.querySelector(`.tr-full-entry[data-idx="${currentIdx}"]`);
+    if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+}
+
+// ── Actions transcription ─────────────────────────────────────────────────
+function copyAllTranscript() {
+  if (_detailIdx < 0) return;
+  const tr   = _allSessions[_detailIdx].full_transcript || [];
+  const text = tr.map(t => `[${t.timestamp||""}] ${t.text||""}`).join("\n");
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById("btn-copy-all");
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = "✓ Copié";
+      setTimeout(() => { btn.textContent = orig; }, 2000);
+    }
+  }).catch(() => {});
+}
+
+function downloadTranscript() {
+  if (_detailIdx < 0) return;
+  const s    = _allSessions[_detailIdx];
+  const tr   = s.full_transcript || [];
+  const sep  = "─".repeat(60);
+  const header = `Radio Nova Watcher — Transcription du ${s.date}\nSession : ${s.start_time||""} → ${s.end_time||""}\nDurée : ${fmtDur(s.duration_minutes||0)} · ${s.chunks_processed||0} chunks\n${sep}\n\n`;
+  const body   = tr.map(t => `[${t.timestamp||""}] ${t.text||""}`).join("\n");
+  const blob   = new Blob([header + body], { type: "text/plain;charset=utf-8" });
+  const url    = URL.createObjectURL(blob);
+  const a      = document.createElement("a");
+  a.href = url; a.download = `transcription-${s.date||"session"}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ── Chart ─────────────────────────────────────────────────────────────────
@@ -691,7 +1048,7 @@ function renderChart(sessions) {
   </div>`;
 }
 
-// ── Détection ─────────────────────────────────────────────────────────────
+// ── Détection (timeline globale) ──────────────────────────────────────────
 function renderDetection(d, i) {
   const c = d.confidence||0;
   const hasCtx = (d.transcription_context||"").trim();
@@ -716,61 +1073,6 @@ function renderDetection(d, i) {
   </div>`;
 }
 
-// ── Session ───────────────────────────────────────────────────────────────
-function renderSession(s, i) {
-  const dets   = s.detections||[];
-  const tr     = s.full_transcript||[];
-  const hasDet = dets.length > 0;
-  const badge  = hasDet
-    ? `<span class="badge badge-detected">${dets.length} détection${dets.length>1?"s":""}</span>`
-    : `<span class="badge badge-nothing">Rien détecté</span>`;
-
-  const detCards = dets.map(d => `<div class="det-card" style="margin-bottom:8px">
-    <div class="det-header"><span class="det-time">${esc(d.timestamp||"—")}</span></div>
-    <div class="det-text">${esc(d.extracted_info||"")}</div>
-    <div class="confidence-row" style="margin-top:8px">
-      <div class="conf-bar-outer">
-        <div class="conf-bar-inner" style="width:0;background:${confColor(d.confidence||0)}" data-width="${d.confidence||0}"></div>
-      </div>
-      ${confBadge(d.confidence||0)}
-    </div>
-  </div>`).join("");
-
-  const trRows = tr.map(t => `<div class="tr-entry" data-q="${esc((t.text||"").toLowerCase())}">
-    <span class="tr-ts">${esc(t.timestamp||"")}</span>
-    <div class="tr-text">
-      <span class="tr-raw">${esc(t.text||"")}</span>
-      <button class="btn-copy" onclick="copyText(this,'${esc(t.text||"").replace(/'/g,"\\'")}')">Copier</button>
-    </div>
-  </div>`).join("");
-
-  return `<div class="session-item" id="sess-${i}">
-    <div class="session-head" onclick="toggleSession(${i})">
-      <div class="session-meta">
-        <span class="session-date">${fmtDate(s.date)}</span>
-        <span class="session-info">${fmtDur(s.duration_minutes||0)} · ${s.chunks_processed||0} chunks · ${s.groq_requests||0} req Groq</span>
-        ${badge}
-      </div>
-      <span class="chevron" id="chev-${i}">▼</span>
-    </div>
-    <div class="session-body" id="body-${i}">
-      <div class="session-actions">
-        ${hasDet ? `<button class="btn-sm" id="btn-det-${i}" onclick="togglePanel('det-panel-${i}','btn-det-${i}')">Détections (${dets.length})</button>` : ""}
-        ${tr.length ? `<button class="btn-sm" id="btn-tr-${i}" onclick="togglePanel('tr-panel-${i}','btn-tr-${i}')">Transcription (${tr.length})</button>` : ""}
-      </div>
-      ${hasDet ? `<div id="det-panel-${i}" style="display:none">${detCards}</div>` : ""}
-      ${tr.length ? `<div id="tr-panel-${i}" style="display:none">
-        <div class="search-wrap">
-          <input class="search-box" type="text" placeholder="Rechercher dans la transcription…"
-                 oninput="filterTr(${i},this.value)" id="srch-${i}">
-          <button class="search-clear" id="clr-${i}" onclick="clearSearch(${i})">✕</button>
-        </div>
-        <div class="transcript-list">${trRows||'<p style="color:var(--text-secondary);font-size:.81rem;padding:8px 0">Aucune transcription.</p>'}</div>
-      </div>` : ""}
-    </div>
-  </div>`;
-}
-
 // ── Empty state ───────────────────────────────────────────────────────────
 function emptyState(title, sub) {
   return `<div class="empty-state">
@@ -784,37 +1086,6 @@ function emptyState(title, sub) {
 }
 
 // ── Interactions ──────────────────────────────────────────────────────────
-function attachHandlers() {}
-
-function toggleSession(i) {
-  const body = document.getElementById(`body-${i}`);
-  const chev = document.getElementById(`chev-${i}`);
-  const open = body.classList.toggle("open");
-  chev.classList.toggle("open", open);
-  if (open) {
-    requestAnimationFrame(() => {
-      body.querySelectorAll(".conf-bar-inner[data-width]").forEach(el => {
-        el.style.width = el.dataset.width + "%";
-      });
-    });
-  }
-}
-
-function togglePanel(id, btnId) {
-  const el  = document.getElementById(id);
-  const btn = document.getElementById(btnId);
-  const vis = el.style.display !== "none";
-  el.style.display = vis ? "none" : "block";
-  btn.classList.toggle("active", !vis);
-  if (!vis) {
-    requestAnimationFrame(() => {
-      el.querySelectorAll(".conf-bar-inner[data-width]").forEach(e => {
-        e.style.width = e.dataset.width + "%";
-      });
-    });
-  }
-}
-
 function toggleCtx(i) {
   const ctx = document.getElementById(`ctx-${i}`);
   const btn = ctx.previousElementSibling;
@@ -822,32 +1093,11 @@ function toggleCtx(i) {
   btn.textContent = open ? "▼ Masquer le contexte" : "▶ Contexte complet";
 }
 
-function filterTr(i, q) {
-  const norm = q.toLowerCase().trim();
-  const clr  = document.getElementById(`clr-${i}`);
-  if (clr) clr.style.display = norm ? "block" : "none";
-  const panel = document.getElementById(`tr-panel-${i}`);
-  if (!panel) return;
-  panel.querySelectorAll(".tr-entry").forEach(row => {
-    const txt   = row.dataset.q || "";
-    const match = !norm || txt.includes(norm);
-    row.classList.toggle("hidden", !match);
-    const span  = row.querySelector(".tr-raw");
-    if (span) span.innerHTML = norm && match ? hlSearch(span.textContent, norm) : esc(span.textContent);
-  });
-}
-
-function clearSearch(i) {
-  const inp = document.getElementById(`srch-${i}`);
-  if (inp) { inp.value = ""; filterTr(i, ""); }
-}
-
-function copyText(btn, text) {
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = "✓";
-    btn.classList.add("copied");
-    setTimeout(() => { btn.textContent = "Copier"; btn.classList.remove("copied"); }, 1500);
-  }).catch(() => {});
+function toggleSessDetCtx(i) {
+  const ctx = document.getElementById(`sdc-${i}`);
+  const btn = ctx.previousElementSibling;
+  const open = ctx.classList.toggle("open");
+  btn.textContent = open ? "▼ Masquer le contexte" : "▶ Contexte complet";
 }
 
 // ── Chargement ────────────────────────────────────────────────────────────
