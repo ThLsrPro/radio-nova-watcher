@@ -200,18 +200,40 @@ L'onglet **Actions** du repo affiche les logs en direct pendant l'exécution.
 
 ---
 
+## Fonctionnalités avancées
+
+### Watchdog de flux
+Si le flux radio s'interrompt plus de 2 minutes, une notification ntfy est envoyée
+et des tentatives de reconnexion sont lancées automatiquement (backoff : 10s → 20s → 40s → 80s → 160s).
+En cas d'échec définitif, le script se termine proprement avec une alerte.
+
+### Analyse contextuelle multi-chunks
+La détection ne se fait pas chunk par chunk mais sur une fenêtre glissante de **3 chunks consécutifs**
+(~45 secondes d'audio). Une annonce à cheval sur deux chunks est ainsi capturée.
+
+Un mode **"alerte partielle"** est activé quand la confidence est entre 50 et 84 :
+les 3 chunks suivants sont analysés avec un seuil abaissé (60) pour confirmer ou infirmer.
+
+### Check automatique du samedi
+Chaque samedi à 18h (Paris), le workflow `weekly_check` lance `healthcheck.py` :
+- Vérifie internet, flux radio, API Groq (transcription réelle), FFmpeg et ntfy
+- Envoie un rapport ntfy "✅ Tout est prêt pour demain" ou "⚠️ Problème détecté"
+- Exécutable en local : `python healthcheck.py`
+
 ## Architecture
 
 ```
 radio-nova-watcher/
 ├── .github/
 │   └── workflows/
-│       └── radio_watcher.yml  # Workflow GitHub Actions (dimanche 18h)
+│       └── radio_watcher.yml  # Dimanche : surveillance / Samedi : check
 ├── main.py                    # Boucle principale + health checks
-├── audio_capture.py           # Capture FFmpeg + segmentation en chunks WAV
+├── audio_capture.py           # Capture FFmpeg + watchdog de flux
 ├── transcriber.py             # Transcription Groq (whisper-large-v3)
-├── detector.py                # Détection locale par mots-clés et regex
+├── detector.py                # Détection mots-clés + contexte multi-chunks
 ├── notifier.py                # Notifications push via ntfy.sh
+├── healthcheck.py             # Check pré-émission autonome (samedi)
+├── quota_monitor.py           # Suivi quotas Groq
 ├── config.py                  # Variables d'environnement
 ├── .env                       # Votre configuration (à créer, ne pas committer)
 ├── .env.example               # Template (sans valeurs réelles)

@@ -20,13 +20,14 @@ URL : http://radionova.ice.infomaniak.ch/radionova-256.aac
 
 ## Structure du projet
 - main.py                            → boucle principale + health checks au démarrage
-- audio_capture.py                   → capture FFmpeg
+- audio_capture.py                   → capture FFmpeg + watchdog de flux
 - transcriber.py                     → transcription via Groq API
-- detector.py                        → détection locale par mots-clés / regex
+- detector.py                        → détection locale par mots-clés / regex + contexte multi-chunks
 - notifier.py                        → notifications push via ntfy.sh
 - quota_monitor.py                   → suivi des quotas Groq (local + CI)
+- healthcheck.py                     → check pré-émission autonome (samedi)
 - config.py                          → variables d'environnement
-- .github/workflows/radio_watcher.yml → workflow GitHub Actions
+- .github/workflows/radio_watcher.yml → workflow GitHub Actions (dimanche + samedi)
 
 ## Health checks au démarrage
 Avant de lancer la surveillance, main.py vérifie :
@@ -40,6 +41,27 @@ Une notification ntfy récapitule les résultats.
 - Démarrage : résultats des health checks
 - Alerte détection : info extraite + transcription brute + confidence
 - Arrêt : durée, chunks traités, nombre de détections
+
+## Watchdog de flux (audio_capture.py)
+- Déclenché si aucun chunk reçu depuis 120 secondes
+- Alerte ntfy immédiate avec timestamp de l'interruption
+- Reconnexion automatique : backoff exponentiel 10s / 20s / 40s / 80s / 160s
+- Notification ntfy de reconnexion réussie (avec durée d'interruption)
+- Arrêt propre du script si toutes les tentatives échouent
+
+## Analyse contextuelle multi-chunks (detector.py)
+- Buffer circulaire des 3 dernières transcriptions (collections.deque)
+- Texte analysé = concaténation [N-2] ... [N-1] ... [N courant]
+- Mode "alerte partielle" : confidence 50-84 → sensibilité abaissée à 60 sur 3 chunks suivants
+- La notification inclut le contexte complet des 3 chunks
+- Logger INFO au passage en alerte partielle, INFO à l'expiration sans confirmation
+
+## Check pré-émission du samedi (healthcheck.py)
+- Script autonome, indépendant de main.py
+- Vérifie : internet, flux radio, Groq API (transcription silence 1s), FFmpeg, ntfy
+- Rapport ntfy : ✅ "Tout est prêt pour demain" ou ⚠️ "Problème détecté" avec lien Actions
+- exit(0) si tout OK, exit(1) sinon
+- Déclenché chaque samedi à 16h00 UTC via GitHub Actions (job weekly_check)
 
 ## Quota monitoring (quota_monitor.py)
 - Suivi en mémoire (session) + fichier JSON local (logs/quota_tracker.json)

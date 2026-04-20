@@ -184,8 +184,11 @@ def run_surveillance() -> None:
             if not result.text.strip():
                 continue
 
-            # ── Détection ──────────────────────────────────────────────────────
+            # ── Analyse contextuelle multi-chunks ──────────────────────────────
+            # analyze() lit le buffer AVANT d'y ajouter le chunk courant,
+            # donc on ajoute après pour que le prochain chunk en bénéficie.
             detection = detector.analyze(result.text)
+            detector.add_transcript(result.text)
 
             if detection.detected:
                 logger.info(
@@ -202,7 +205,7 @@ def run_surveillance() -> None:
                         "extracted_info": detection.extracted_info,
                         "confidence": detection.confidence,
                     },
-                    transcription=result.text,
+                    transcription=detection.context_text or result.text,
                 )
                 if success:
                     detector.mark_notified()

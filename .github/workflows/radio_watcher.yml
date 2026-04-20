@@ -1,16 +1,17 @@
 name: Radio Nova Watcher
 
 on:
-  # Chaque dimanche à 17h00 UTC = 18h00 heure de Paris (UTC+1 hiver / UTC+2 été)
-  # En été (CEST, UTC+2) : déclencher à 16h00 UTC pour 18h00 Paris
-  # Ajuster selon la saison si besoin
+  # Dimanche 16h00 UTC = 18h00 Paris → surveillance live
+  # Samedi  16h00 UTC = 18h00 Paris → check pré-émission
   schedule:
     - cron: '0 16 * * 0'
+    - cron: '0 16 * * 6'
 
   # Déclenchement manuel depuis l'onglet Actions (pour tester)
   workflow_dispatch:
 
 jobs:
+  # ── Surveillance dominicale ──────────────────────────────────────────────────
   watch:
     runs-on: ubuntu-latest
     timeout-minutes: 130
@@ -53,3 +54,37 @@ jobs:
 
           Consultez les logs : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             "${{ secrets.NTFY_SERVER }}/${{ secrets.NTFY_TOPIC }}"
+
+  # ── Check pré-émission du samedi ─────────────────────────────────────────────
+  weekly_check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      NTFY_SERVER: ${{ secrets.NTFY_SERVER }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      RADIO_STREAM_URL: ${{ secrets.RADIO_STREAM_URL }}
+
+    # Ce job ne se déclenche que sur le schedule du samedi.
+    # Pour le tester via workflow_dispatch, supprimer temporairement la condition.
+    if: github.event_name == 'schedule' && github.event.schedule == '0 16 * * 6'
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Installer FFmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Installer les dépendances Python
+        run: pip install -r requirements.txt
+
+      - name: Lancer le check pré-émission
+        run: python healthcheck.py

@@ -86,7 +86,7 @@ def send_notification(detected_info: dict, transcription: str) -> bool:
         "🎙️ ALERTE - Places en vente !\n\n"
         f"📢 Info détectée : {extracted_info}\n"
         f"🕐 Heure : {timestamp}\n"
-        f"📝 Transcription : {transcription}\n"
+        f"📝 Contexte complet : {transcription}\n"
         f"🎯 Confidence : {confidence}%"
     )
 

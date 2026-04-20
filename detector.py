@@ -6,11 +6,18 @@ Logique en trois niveaux :
   - Mots-clés PRIMAIRES  : spécifiques à la billetterie, déclenchent seuls une détection.
   - Mots-clés SECONDAIRES : génériques, nécessitent combinaison pour être significatifs.
   - Mots-clés d'EXCLUSION : contexte publicitaire non-billetterie → annulent la détection.
+
+Analyse contextuelle :
+  - Buffer circulaire des 3 dernières transcriptions pour détecter les annonces
+    à cheval sur plusieurs chunks.
+  - Mode "alerte partielle" (confidence 50-84) : sensibilité augmentée sur les
+    3 chunks suivants pour confirmer ou infirmer la détection.
 """
 
 import logging
 import re
 import time
+from collections import deque
 from dataclasses import dataclass, field
 
 import config
@@ -18,8 +25,6 @@ import config
 logger = logging.getLogger(__name__)
 
 # ── Mots-clés PRIMAIRES ───────────────────────────────────────────────────────
-# Très spécifiques au contexte billetterie/spectacle. Un seul suffit à déclencher
-# une détection (confidence ≥ 70).
 
 _RAW_PRIMARY: list[str] = [
     r"\bbilletteri[e]?\b",
@@ -39,13 +44,10 @@ _RAW_PRIMARY: list[str] = [
     r"\bhelloasso\b",
     r"europ[eé]en\s+paris",
     r"l[''\s]europ[eé]en\b",
-    r"la\s+derni[eè]re",          # mention de l'émission cible
+    r"la\s+derni[eè]re",
 ]
 
 # ── Mots-clés SECONDAIRES ─────────────────────────────────────────────────────
-# Génériques : seuls ils ne signifient rien (pub, météo, sport…).
-# Déclenchent une détection uniquement s'ils accompagnent au moins un primaire
-# OU s'ils sont au moins deux combinés ensemble.
 
 _RAW_SECONDARY: list[str] = [
     r"\bticket(?:s)?\b",
@@ -67,8 +69,6 @@ _RAW_SECONDARY: list[str] = [
 ]
 
 # ── Mots-clés d'EXCLUSION ─────────────────────────────────────────────────────
-# Signaux forts de contexte publicitaire non-billetterie.
-# Leur présence ramène la confidence à 0.
 
 _RAW_EXCLUSION: list[str] = [
     r"\bfromage\b",
@@ -102,14 +102,17 @@ _RAW_EXCLUSION: list[str] = [
     r"\bforfait\s+(?:mobile|internet)\b",
 ]
 
-# ── Compilation des patterns ───────────────────────────────────────────────────
+# ── Compilation ───────────────────────────────────────────────────────────────
 _PRIMARY   = [(p, re.compile(p, re.IGNORECASE)) for p in _RAW_PRIMARY]
 _SECONDARY = [(p, re.compile(p, re.IGNORECASE)) for p in _RAW_SECONDARY]
 _EXCLUSION = [re.compile(p, re.IGNORECASE) for p in _RAW_EXCLUSION]
 
+# Seuil de confidence minimal en mode alerte partielle (sensibilité augmentée)
+_PARTIAL_ALERT_CONFIRM_THRESHOLD = 60
+
 
 def _find_matches(text: str, patterns: list[tuple[str, re.Pattern[str]]]) -> list[str]:
-    """Retourne la liste des patterns bruts (chaînes) qui ont matché dans le texte."""
+    """Retourne les patterns bruts qui ont matché dans le texte."""
     return [raw for raw, compiled in patterns if compiled.search(text)]
 
 
@@ -123,28 +126,23 @@ def _compute_confidence(
     secondary_hits: list[str],
 ) -> tuple[int, bool]:
     """
-    Calcule (confidence, action_required) selon les règles de combinaison.
+    Calcule (confidence, action_required).
 
     Règles :
-      - Exclusion présente                               → (0, False)  [géré avant l'appel]
-      - 0 primaire, < 2 secondaires                      → (0, False)
-      - 0 primaire, ≥ 2 secondaires                      → (30, False)
-      - 1 primaire seul (0 secondaire)                   → (70, False)
-      - 1 primaire + ≥ 1 secondaire                      → (85, True)
-      - 2 primaires                                      → (90, True)
-      - ≥ 3 primaires                                    → (98, True)
+      - 0 primaire, < 2 secondaires  → (0,  False)
+      - 0 primaire, ≥ 2 secondaires  → (30, False)
+      - 1 primaire seul               → (70, False)
+      - 1 primaire + ≥ 1 secondaire   → (85, True)
+      - 2 primaires                   → (90, True)
+      - ≥ 3 primaires                 → (98, True)
     """
     np = len(primary_hits)
     ns = len(secondary_hits)
 
     if np == 0:
-        if ns >= 2:
-            return 30, False
-        return 0, False
+        return (30, False) if ns >= 2 else (0, False)
     if np == 1:
-        if ns == 0:
-            return 70, False
-        return 85, True
+        return (85, True) if ns >= 1 else (70, False)
     if np == 2:
         return 90, True
     return 98, True
@@ -152,19 +150,16 @@ def _compute_confidence(
 
 def _extract_relevant_sentences(
     text: str,
-    primary_compiled: list[re.Pattern[str]],
-    secondary_compiled: list[re.Pattern[str]],
+    p_compiled: list[re.Pattern[str]],
+    s_compiled: list[re.Pattern[str]],
 ) -> str:
     """Retourne les phrases contenant au moins un pattern matché."""
-    all_patterns = primary_compiled + secondary_compiled
+    all_patterns = p_compiled + s_compiled
     sentences = re.split(r"[.!?;\n]+", text)
-    relevant: list[str] = []
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if not sentence:
-            continue
-        if any(p.search(sentence) for p in all_patterns):
-            relevant.append(sentence)
+    relevant = [
+        s.strip() for s in sentences
+        if s.strip() and any(p.search(s) for p in all_patterns)
+    ]
     return " | ".join(relevant) if relevant else ""
 
 
@@ -176,58 +171,109 @@ class DetectionResult:
     extracted_info: str
     action_required: bool
     matched_keywords: list[str] = field(default_factory=list)
+    context_text: str = field(repr=False, default="")  # texte multi-chunks utilisé
 
 
 class Detector:
-    """Détecte les annonces de billets par analyse locale (mots-clés + regex)."""
+    """
+    Détecte les annonces de billets par analyse locale (mots-clés + regex).
+
+    Maintient un buffer circulaire de 3 transcriptions pour l'analyse contextuelle
+    et un état "alerte partielle" pour les détections ambiguës.
+    """
 
     def __init__(self) -> None:
-        # Timestamp de la dernière notification envoyée (pour le cooldown)
         self._last_notification_time: float = 0.0
+
+        # Buffer circulaire des 3 dernières transcriptions (texte brut)
+        self._transcript_buffer: deque[str] = deque(maxlen=3)
+
+        # État alerte partielle
+        self._partial_alert_active: bool = False
+        self._partial_alert_chunks_remaining: int = 0
+
+    def add_transcript(self, text: str) -> None:
+        """Ajoute une transcription au buffer contextuel."""
+        if text.strip():
+            self._transcript_buffer.append(text.strip())
 
     def analyze(self, text: str) -> DetectionResult:
         """
-        Analyse un texte transcrit pour détecter une annonce de billets.
+        Analyse le texte courant enrichi du contexte des chunks précédents.
+
+        Le texte analysé est la concaténation :
+            [chunk N-2] ... [chunk N-1] ... [chunk N]
+
+        En mode alerte partielle, le seuil de détection est abaissé à 60.
 
         Args:
-            text: Texte transcrit à analyser.
+            text: Transcription du chunk courant.
 
         Returns:
-            DetectionResult avec detected=False et confidence=0 si rien n'est trouvé.
+            DetectionResult.
         """
         if not text.strip():
             logger.debug("Texte vide, analyse ignorée.")
+            self._tick_partial_alert()
             return DetectionResult(
                 detected=False, confidence=0, extracted_info="", action_required=False
             )
 
-        # Vérification d'exclusion en priorité
-        if _is_excluded(text):
-            logger.debug("Contexte publicitaire détecté (mot-clé d'exclusion) — ignoré.")
+        # Construire le contexte multi-chunks
+        context_parts = list(self._transcript_buffer) + [text.strip()]
+        context_text = " ... ".join(context_parts)
+
+        # Vérification d'exclusion sur le contexte complet
+        if _is_excluded(context_text):
+            logger.debug("Contexte publicitaire détecté — ignoré.")
+            self._tick_partial_alert()
             return DetectionResult(
                 detected=False, confidence=0, extracted_info="", action_required=False
             )
 
-        primary_hits   = _find_matches(text, _PRIMARY)
-        secondary_hits = _find_matches(text, _SECONDARY)
-
+        primary_hits   = _find_matches(context_text, _PRIMARY)
+        secondary_hits = _find_matches(context_text, _SECONDARY)
         confidence, action_required = _compute_confidence(primary_hits, secondary_hits)
-        detected = confidence >= 70  # seuil minimal pour comptabiliser une détection
 
         matched_keywords = primary_hits + secondary_hits
 
+        # ── Logique alerte partielle ───────────────────────────────────────────
+        detect_threshold = 70  # seuil normal
+
+        if confidence >= 50 and confidence <= 84 and not self._partial_alert_active:
+            # Passage en mode alerte partielle
+            self._partial_alert_active = True
+            self._partial_alert_chunks_remaining = 3
+            logger.info(
+                f"Mode alerte partielle activé (confidence={confidence}) — "
+                f"sensibilité augmentée sur les 3 prochains chunks."
+            )
+        elif self._partial_alert_active:
+            # En mode alerte partielle : seuil abaissé
+            detect_threshold = _PARTIAL_ALERT_CONFIRM_THRESHOLD
+            self._partial_alert_chunks_remaining -= 1
+            if self._partial_alert_chunks_remaining <= 0:
+                self._partial_alert_active = False
+                logger.info("Mode alerte partielle expiré sans confirmation.")
+
+        detected = confidence >= detect_threshold
+
+        # Extraction des phrases pertinentes sur le texte complet du contexte
         extracted_info = ""
-        if detected or confidence == 30:
+        if detected or confidence >= 30:
             p_comp = [c for r, c in _PRIMARY   if r in primary_hits]
             s_comp = [c for r, c in _SECONDARY if r in secondary_hits]
-            extracted_info = _extract_relevant_sentences(text, p_comp, s_comp)
+            extracted_info = _extract_relevant_sentences(context_text, p_comp, s_comp)
 
-        if confidence >= 70:
+        if detected:
             logger.info(
                 f"Détection positive — confidence={confidence} "
                 f"action_required={action_required} "
                 f"mots-clés={matched_keywords}"
             )
+            # Réinitialiser l'alerte partielle si on a une détection ferme
+            if confidence > 84:
+                self._partial_alert_active = False
         else:
             logger.debug(
                 f"Détection faible — confidence={confidence} "
@@ -240,7 +286,16 @@ class Detector:
             extracted_info=extracted_info,
             action_required=action_required,
             matched_keywords=matched_keywords,
+            context_text=context_text,
         )
+
+    def _tick_partial_alert(self) -> None:
+        """Décrémente le compteur d'alerte partielle si actif."""
+        if self._partial_alert_active:
+            self._partial_alert_chunks_remaining -= 1
+            if self._partial_alert_chunks_remaining <= 0:
+                self._partial_alert_active = False
+                logger.info("Mode alerte partielle expiré (texte vide).")
 
     def should_notify(self, result: DetectionResult) -> bool:
         """
@@ -249,7 +304,7 @@ class Detector:
         Conditions :
         - confidence > 80
         - action_required = True
-        - Pas de notification envoyée dans les DETECTION_COOLDOWN_MINUTES dernières minutes
+        - Cooldown respecté
         """
         if not result.detected:
             return False
