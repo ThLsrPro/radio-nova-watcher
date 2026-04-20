@@ -5,6 +5,7 @@ Application Python qui écoute en continu le flux live de Radio Nova,
 transcrit la parole en temps réel et détecte toute annonce de mise en vente
 de places pour l'émission "La dernière" enregistrée à l'Européen (Paris).
 Une notification push est envoyée via ntfy.sh dès la détection.
+Conçu pour tourner automatiquement chaque dimanche sur GitHub Actions.
 
 ## Flux audio
 URL : http://radionova.ice.infomaniak.ch/radionova-256.aac
@@ -12,17 +13,32 @@ URL : http://radionova.ice.infomaniak.ch/radionova-256.aac
 ## Stack technique
 - Python 3.11+
 - FFmpeg (capture et segmentation du flux AAC)
-- OpenAI Whisper local (transcription, modèle "small")
+- Groq API / whisper-large-v3 (transcription cloud, sans GPU)
 - Détection locale par mots-clés et expressions régulières (pas d'API externe)
 - ntfy.sh (notifications push via HTTP POST)
+- GitHub Actions (exécution automatique chaque dimanche à 18h Paris)
 
 ## Structure du projet
-- main.py           → boucle principale
-- audio_capture.py  → capture FFmpeg
-- transcriber.py    → transcription Whisper
-- detector.py       → détection locale par mots-clés / regex
-- notifier.py       → envoi push via ntfy.sh
-- config.py         → variables d'environnement
+- main.py                            → boucle principale + health checks au démarrage
+- audio_capture.py                   → capture FFmpeg
+- transcriber.py                     → transcription via Groq API
+- detector.py                        → détection locale par mots-clés / regex
+- notifier.py                        → notifications push via ntfy.sh
+- config.py                          → variables d'environnement
+- .github/workflows/radio_watcher.yml → workflow GitHub Actions
+
+## Health checks au démarrage
+Avant de lancer la surveillance, main.py vérifie :
+1. Connexion internet (ping ntfy.sh)
+2. Accès au flux radio (HEAD sur RADIO_STREAM_URL)
+3. Groq API (liste des modèles)
+4. FFmpeg (ffmpeg -version)
+Une notification ntfy récapitule les résultats.
+
+## Notifications ntfy
+- Démarrage : résultats des health checks
+- Alerte détection : info extraite + transcription brute + confidence
+- Arrêt : durée, chunks traités, nombre de détections
 
 ## Conventions
 - Code commenté en français

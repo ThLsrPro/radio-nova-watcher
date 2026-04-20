@@ -1,11 +1,11 @@
-# Transcription audio
-openai-whisper==20231117
+# Transcription audio via API Groq
+groq>=0.9.0
 
-# Requêtes HTTP (notifications ntfy)
+# Requêtes HTTP (notifications ntfy + health checks)
 requests>=2.31.0
 
 # Variables d'environnement
 python-dotenv>=1.0.0
 
-# Dépendances système (numpy requis par Whisper)
+# Dépendances système
 numpy>=1.24.0

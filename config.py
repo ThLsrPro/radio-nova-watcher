@@ -22,6 +22,9 @@ def _optional(key: str, default: str) -> str:
     return os.getenv(key, default)
 
 
+# ── Groq API ──────────────────────────────────────────────────────────────────
+GROQ_API_KEY: str = _require("GROQ_API_KEY")
+
 # ── ntfy.sh ───────────────────────────────────────────────────────────────────
 # Nom unique du topic sur lequel les notifications sont publiées
 NTFY_TOPIC: str = _require("NTFY_TOPIC")
@@ -33,9 +36,6 @@ RADIO_STREAM_URL: str = _optional(
     "RADIO_STREAM_URL",
     "http://radionova.ice.infomaniak.ch/radionova-256.aac",
 )
-
-# ── Whisper ───────────────────────────────────────────────────────────────────
-WHISPER_MODEL: str = _optional("WHISPER_MODEL", "small")
 
 # ── Capture audio ─────────────────────────────────────────────────────────────
 CHUNK_DURATION_SECONDS: int = int(_optional("CHUNK_DURATION_SECONDS", "15"))

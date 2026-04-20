@@ -1,13 +1,15 @@
 # Radio Nova Watcher
 
 Application Python qui écoute en continu le flux live de Radio Nova, transcrit la parole
-en temps réel et détecte toute annonce de mise en vente de places pour l'émission
-**"La dernière"** enregistrée à l'Européen (Paris). Une notification push est envoyée
-via **ntfy.sh** dès la détection.
+en temps réel via **Groq API (whisper-large-v3)** et détecte toute annonce de mise en vente
+de places pour l'émission **"La dernière"** enregistrée à l'Européen (Paris).
+Une notification push est envoyée via **ntfy.sh** dès la détection.
+
+Conçu pour tourner chaque dimanche en automatique sur **GitHub Actions**.
 
 ---
 
-## Prérequis système
+## Prérequis système (exécution locale)
 
 | Outil | Version minimale | Installation |
 |-------|-----------------|--------------|
@@ -46,13 +48,10 @@ cp .env.example .env
 ## Configuration des notifications ntfy
 
 ntfy.sh est un service de notifications push **gratuit, sans compte, sans inscription**.
-Le principe : vous publiez sur un topic, les abonnés reçoivent la notification.
 
 ### 1. Choisir un nom de topic
 
-Le topic est simplement une chaîne de caractères dans l'URL.
 Choisissez quelque chose d'**imprévisible** pour éviter que d'autres s'y abonnent :
-
 ```
 radionova-alerte-thomas-x7k2
 ```
@@ -64,12 +63,10 @@ radionova-alerte-thomas-x7k2
 
 ### 3. Vérifier dans le navigateur
 
-Accédez à `https://ntfy.sh/{VOTRE_TOPIC}` pour voir les notifications en temps réel
-sans application.
+Accédez à `https://ntfy.sh/{VOTRE_TOPIC}` pour voir les notifications sans application.
 
 ### 4. Option avancée — auto-hébergement
 
-Pour plus de confidentialité, ntfy peut être auto-hébergé :
 ```bash
 docker run -p 80:80 binwiederhier/ntfy serve
 ```
@@ -79,66 +76,109 @@ Puis renseignez `NTFY_SERVER=https://ntfy.monserveur.fr` dans `.env`.
 
 ## Remplissage du fichier `.env`
 
-Ouvrez `.env` et ajustez les variables :
-
 ```dotenv
-# Nom unique de votre topic (rendez-le imprévisible)
+# Clé API Groq (https://console.groq.com → API Keys)
+GROQ_API_KEY=gsk_...
+
+# Topic ntfy (choisissez un nom imprévisible)
 NTFY_TOPIC=radionova-alerte-thomas-x7k2
 
-# Serveur ntfy (laisser par défaut ou pointer vers votre instance)
-NTFY_SERVER=https://ntfy.sh
-
 # Optionnel — valeurs par défaut déjà configurées
-# WHISPER_MODEL=small
+# NTFY_SERVER=https://ntfy.sh
 # CHUNK_DURATION_SECONDS=15
 # DETECTION_COOLDOWN_MINUTES=30
 ```
 
-> **Ne commitez jamais votre fichier `.env`** — le nom de topic y est inscrit.
+> **Ne commitez jamais votre fichier `.env`**
 
 ---
 
-## Lancement
+## Lancement local
 
 ```bash
-# Activer l'environnement virtuel si ce n'est pas déjà fait
 source venv/bin/activate
-
-# Lancer la surveillance
 python main.py
 ```
 
-Vous verrez dans le terminal toutes les transcriptions en temps réel :
+Au démarrage, le programme effectue une série de **health checks** et envoie
+une notification ntfy récapitulative :
 
 ```
 ============================================================
   Radio Nova Watcher — Surveillance en temps réel
 ============================================================
   Flux radio     : http://radionova.ice.infomaniak.ch/radionova-256.aac
-  Modèle Whisper : small
+  Transcription  : Groq whisper-large-v3
   Durée chunk    : 15s
   Cooldown       : 30 min
   Topic ntfy     : https://ntfy.sh/radionova-alerte-thomas-x7k2
 ============================================================
 
-[14:32:01] Et maintenant on reste sur Radio Nova avec la suite de la programmation…
-[14:32:17] Les billets pour La dernière à l'Européen sont disponibles dès maintenant…
+── Health checks ─────────────────────────────────────
+  ✅ Internet OK
+  ✅ Flux Radio Nova accessible
+  ✅ Groq API operationnelle
+  ✅ FFmpeg disponible (6.1)
+──────────────────────────────────────────────────────
+
+[14:32:01] Et maintenant on reste sur Radio Nova…
+[14:32:17] Les billets pour La dernière à l'Européen sont disponibles…
 ```
 
-Arrêt propre : **Ctrl+C**
+À l'arrêt (**Ctrl+C**), une notification de fin est envoyée avec le résumé de session.
 
 ---
 
 ## Test de notification
 
-Pour vérifier que la configuration ntfy est correcte sans lancer la surveillance :
-
 ```bash
 python main.py --test-notification
 ```
 
-Le terminal affiche l'URL du topic. Une notification de test apparaît sur votre mobile
-et/ou dans le navigateur.
+---
+
+## Déploiement GitHub Actions
+
+Le workflow `.github/workflows/radio_watcher.yml` lance la surveillance automatiquement
+**chaque dimanche à 18h00 (heure de Paris)** sans serveur à gérer.
+
+### 1. Créer le repo GitHub
+
+```bash
+git init
+git remote add origin https://github.com/votre-user/radio-nova-watcher.git
+git add .
+git commit -m "Initial commit"
+git push -u origin main
+```
+
+> Repo **privé** recommandé pour ne pas exposer le nom de votre topic ntfy.
+
+### 2. Ajouter les secrets GitHub
+
+Dans votre repo : **Settings → Secrets and variables → Actions → New repository secret**
+
+| Secret | Valeur |
+|--------|--------|
+| `GROQ_API_KEY` | Votre clé Groq |
+| `NTFY_TOPIC` | Votre topic ntfy |
+| `NTFY_SERVER` | `https://ntfy.sh` (ou votre serveur) |
+| `RADIO_STREAM_URL` | URL du flux (optionnel) |
+| `CHUNK_DURATION_SECONDS` | `15` (optionnel) |
+| `DETECTION_COOLDOWN_MINUTES` | `30` (optionnel) |
+
+### 3. Déclenchement automatique
+
+Le workflow se déclenche chaque dimanche à **17h00 UTC** (= 18h00 Paris en hiver).
+En période d'heure d'été (CEST = UTC+2), modifier le cron en `"0 16 * * 0"`.
+
+### 4. Déclenchement manuel
+
+**Actions → Radio Nova Watcher → Run workflow** pour tester sans attendre le dimanche.
+
+### 5. Suivi en temps réel
+
+L'onglet **Actions** du repo affiche les logs en direct pendant l'exécution.
 
 ---
 
@@ -155,9 +195,7 @@ et/ou dans le navigateur.
 2024-03-15 14:32:00 [INFO] __main__ — Initialisation des modules…
 2024-03-15 14:32:05 [INFO] __main__ — Tous les modules sont prêts. Démarrage de la surveillance.
 2024-03-15 14:32:17 [INFO] detector — Détection positive ! confidence=95 action_required=True
-2024-03-15 14:32:17 [INFO] __main__ — Envoi de la notification ntfy…
 2024-03-15 14:32:18 [INFO] notifier — Notification ntfy envoyée (HTTP 200) → https://ntfy.sh/…
-2024-03-15 14:32:18 [INFO] __main__ — Notification envoyée avec succès.
 ```
 
 ---
@@ -166,17 +204,20 @@ et/ou dans le navigateur.
 
 ```
 radio-nova-watcher/
-├── main.py           # Boucle principale de surveillance
-├── audio_capture.py  # Capture FFmpeg + segmentation en chunks WAV
-├── transcriber.py    # Transcription Whisper (modèle "small", langue fr)
-├── detector.py       # Détection locale par mots-clés et regex
-├── notifier.py       # Envoi push via ntfy.sh
-├── config.py         # Variables d'environnement
-├── .env              # Votre configuration (à créer, ne pas committer)
-├── .env.example      # Template (sans valeurs réelles)
-├── requirements.txt  # Dépendances Python
+├── .github/
+│   └── workflows/
+│       └── radio_watcher.yml  # Workflow GitHub Actions (dimanche 18h)
+├── main.py                    # Boucle principale + health checks
+├── audio_capture.py           # Capture FFmpeg + segmentation en chunks WAV
+├── transcriber.py             # Transcription Groq (whisper-large-v3)
+├── detector.py                # Détection locale par mots-clés et regex
+├── notifier.py                # Notifications push via ntfy.sh
+├── config.py                  # Variables d'environnement
+├── .env                       # Votre configuration (à créer, ne pas committer)
+├── .env.example               # Template (sans valeurs réelles)
+├── requirements.txt           # Dépendances Python
 ├── logs/
 │   ├── transcriptions.log
 │   └── app.log
-└── tmp_chunks/       # Chunks WAV temporaires (nettoyés automatiquement)
+└── tmp_chunks/                # Chunks WAV temporaires (nettoyés automatiquement)
 ```

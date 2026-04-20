@@ -16,17 +16,62 @@ MAX_RETRIES = 3
 RETRY_DELAY_SECONDS = 5
 
 
-def send_notification(detected_info: dict, transcription: str) -> bool:
+def _post_ntfy(title: str, body: str, priority: str = "default", tags: str = "bell,radio") -> bool:
     """
-    Envoie une notification ntfy avec les informations détectées.
+    Fonction interne : envoie un POST vers ntfy avec retry.
 
     Args:
-        detected_info: Dictionnaire contenant au minimum les clés
-                       'extracted_info' et 'confidence'.
-        transcription: Transcription brute du chunk audio concerné.
+        title:    Titre de la notification (ASCII uniquement — pas d'emojis).
+        body:     Corps du message (UTF-8, emojis autorisés).
+        priority: Priorité ntfy : min | low | default | high | urgent.
+        tags:     Tags ntfy séparés par des virgules (noms d'emojis).
 
     Returns:
-        True si l'envoi a réussi, False après épuisement des tentatives.
+        True si l'envoi a réussi.
+    """
+    url = f"{config.NTFY_SERVER}/{config.NTFY_TOPIC}"
+    headers = {
+        "Title": title,
+        "Priority": priority,
+        "Tags": tags,
+        "Content-Type": "text/plain; charset=utf-8",
+    }
+
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            response = requests.post(
+                url,
+                data=body.encode("utf-8"),
+                headers=headers,
+                timeout=10,
+            )
+            response.raise_for_status()
+            logger.info(f"Notification ntfy envoyée (HTTP {response.status_code}) → {url}")
+            return True
+
+        except requests.exceptions.HTTPError as exc:
+            logger.warning(f"Erreur HTTP ntfy (tentative {attempt}/{MAX_RETRIES}) : {exc}")
+        except requests.exceptions.ConnectionError as exc:
+            logger.warning(f"Connexion ntfy impossible (tentative {attempt}/{MAX_RETRIES}) : {exc}")
+        except requests.exceptions.Timeout:
+            logger.warning(f"Délai dépassé ntfy (tentative {attempt}/{MAX_RETRIES})")
+        except Exception as exc:
+            logger.error(f"Erreur inattendue lors de l'envoi ntfy : {exc}")
+
+        if attempt < MAX_RETRIES:
+            time.sleep(RETRY_DELAY_SECONDS)
+
+    logger.error(f"Impossible d'envoyer la notification ntfy après {MAX_RETRIES} tentatives.")
+    return False
+
+
+def send_notification(detected_info: dict, transcription: str) -> bool:
+    """
+    Envoie une alerte ntfy pour une détection positive de mise en vente.
+
+    Args:
+        detected_info: Dictionnaire avec 'extracted_info' et 'confidence'.
+        transcription: Transcription brute du chunk audio concerné.
     """
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     extracted_info = detected_info.get("extracted_info", "")
@@ -45,55 +90,90 @@ def send_notification(detected_info: dict, transcription: str) -> bool:
         f"🎯 Confidence : {confidence}%"
     )
 
-    url = f"{config.NTFY_SERVER}/{config.NTFY_TOPIC}"
-    headers = {
-        "Title": "ALERTE Radio Nova - La Derniere",
-        "Priority": "urgent",
-        "Tags": "bell,radio",
-        "Content-Type": "text/plain; charset=utf-8",
-    }
+    return _post_ntfy(
+        title="ALERTE Radio Nova - La Derniere",
+        body=body,
+        priority="urgent",
+        tags="bell,radio",
+    )
 
-    for attempt in range(1, MAX_RETRIES + 1):
-        try:
-            response = requests.post(
-                url,
-                data=body.encode("utf-8"),
-                headers=headers,
-                timeout=10,
-            )
-            response.raise_for_status()
-            logger.info(f"Notification ntfy envoyée (HTTP {response.status_code}) → {url}")
-            return True
 
-        except requests.exceptions.HTTPError as exc:
-            logger.warning(
-                f"Erreur HTTP ntfy (tentative {attempt}/{MAX_RETRIES}) : {exc}"
-            )
-        except requests.exceptions.ConnectionError as exc:
-            logger.warning(
-                f"Connexion ntfy impossible (tentative {attempt}/{MAX_RETRIES}) : {exc}"
-            )
-        except requests.exceptions.Timeout:
-            logger.warning(
-                f"Délai dépassé ntfy (tentative {attempt}/{MAX_RETRIES})"
-            )
-        except Exception as exc:
-            logger.error(f"Erreur inattendue lors de l'envoi ntfy : {exc}")
+def send_startup_notification(check_results: list[str]) -> bool:
+    """
+    Envoie la notification de démarrage avec les résultats des health checks.
 
-        if attempt < MAX_RETRIES:
-            time.sleep(RETRY_DELAY_SECONDS)
+    Args:
+        check_results: Liste de chaînes décrivant chaque vérification
+                       (avec ✅ ou ❌ en préfixe).
+    """
+    checks_text = "\n".join(check_results)
+    body = (
+        "🎙️ Radio Nova Watcher est operationnel !\n"
+        "📅 Dimanche - Surveillance 18h00 → 20h00\n\n"
+        "Resultats des verifications :\n"
+        f"{checks_text}\n\n"
+        "🔍 Detection active - En attente d'annonce billetterie..."
+    )
 
-    logger.error(f"Impossible d'envoyer la notification ntfy après {MAX_RETRIES} tentatives.")
-    return False
+    return _post_ntfy(
+        title="Radio Nova Watcher - Demarrage",
+        body=body,
+        priority="default",
+        tags="white_check_mark,radio",
+    )
+
+
+def send_shutdown_notification(
+    duration_seconds: float,
+    chunks_processed: int,
+    detections_count: int,
+    detection_summary: str = "",
+) -> bool:
+    """
+    Envoie la notification de fin de surveillance.
+
+    Args:
+        duration_seconds:  Durée totale de la surveillance en secondes.
+        chunks_processed:  Nombre de chunks audio traités.
+        detections_count:  Nombre de détections positives.
+        detection_summary: Résumé de la détection si applicable.
+    """
+    minutes = int(duration_seconds // 60)
+    seconds = int(duration_seconds % 60)
+    duration_str = f"{minutes}min {seconds}s"
+
+    if detections_count > 0 and detection_summary:
+        resume = f"🎯 Détection : {detection_summary}"
+    elif detections_count > 0:
+        resume = f"🎯 {detections_count} détection(s) positive(s) — voir les logs."
+    else:
+        resume = "🔕 Aucune annonce de billetterie détectée."
+
+    body = (
+        "📴 Surveillance terminée\n"
+        f"⏱️ Durée : {duration_str}\n"
+        f"📝 Chunks traités : {chunks_processed}\n"
+        f"🔍 Détections : {detections_count}\n"
+        f"{resume}"
+    )
+
+    return _post_ntfy(
+        title="Radio Nova Watcher - Arret",
+        body=body,
+        priority="default",
+        tags="stop_sign,radio",
+    )
 
 
 def send_test_notification() -> bool:
     """Envoie un message de test pour vérifier la configuration ntfy."""
-    detected_info = {
-        "extracted_info": (
-            "✅ Test de notification Radio Nova Watcher - "
-            "Si vous recevez ce message, la configuration est correcte !"
-        ),
-        "confidence": 100,
-    }
-    return send_notification(detected_info, transcription="[TEST — pas de transcription réelle]")
+    body = (
+        "✅ Test de notification Radio Nova Watcher\n\n"
+        "Si vous recevez ce message, la configuration est correcte !"
+    )
+    return _post_ntfy(
+        title="Radio Nova Watcher - Test",
+        body=body,
+        priority="default",
+        tags="white_check_mark",
+    )
