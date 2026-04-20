@@ -5,7 +5,7 @@ on:
   # En été (CEST, UTC+2) : déclencher à 16h00 UTC pour 18h00 Paris
   # Ajuster selon la saison si besoin
   schedule:
-    - cron: "0 17 * * 0"
+    - cron: '0 16 * * 0'
 
   # Déclenchement manuel depuis l'onglet Actions (pour tester)
   workflow_dispatch:

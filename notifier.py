@@ -98,20 +98,22 @@ def send_notification(detected_info: dict, transcription: str) -> bool:
     )
 
 
-def send_startup_notification(check_results: list[str]) -> bool:
+def send_startup_notification(check_results: list[str], quota_summary: str = "") -> bool:
     """
     Envoie la notification de démarrage avec les résultats des health checks.
 
     Args:
-        check_results: Liste de chaînes décrivant chaque vérification
-                       (avec ✅ ou ❌ en préfixe).
+        check_results:  Liste de chaînes décrivant chaque vérification (✅/❌).
+        quota_summary:  Résumé des quotas Groq du mois (optionnel).
     """
     checks_text = "\n".join(check_results)
+    quota_line = f"\n{quota_summary}" if quota_summary else ""
     body = (
         "🎙️ Radio Nova Watcher est operationnel !\n"
         "📅 Dimanche - Surveillance 18h00 → 20h00\n\n"
         "Resultats des verifications :\n"
-        f"{checks_text}\n\n"
+        f"{checks_text}"
+        f"{quota_line}\n\n"
         "🔍 Detection active - En attente d'annonce billetterie..."
     )
 
@@ -128,15 +130,17 @@ def send_shutdown_notification(
     chunks_processed: int,
     detections_count: int,
     detection_summary: str = "",
+    session_quota_summary: str = "",
 ) -> bool:
     """
     Envoie la notification de fin de surveillance.
 
     Args:
-        duration_seconds:  Durée totale de la surveillance en secondes.
-        chunks_processed:  Nombre de chunks audio traités.
-        detections_count:  Nombre de détections positives.
-        detection_summary: Résumé de la détection si applicable.
+        duration_seconds:      Durée totale de la surveillance en secondes.
+        chunks_processed:      Nombre de chunks audio traités.
+        detections_count:      Nombre de détections positives.
+        detection_summary:     Résumé de la détection si applicable.
+        session_quota_summary: Résumé des quotas Groq de la session.
     """
     minutes = int(duration_seconds // 60)
     seconds = int(duration_seconds % 60)
@@ -149,12 +153,14 @@ def send_shutdown_notification(
     else:
         resume = "🔕 Aucune annonce de billetterie détectée."
 
+    quota_line = f"\n{session_quota_summary}" if session_quota_summary else ""
     body = (
         "📴 Surveillance terminée\n"
         f"⏱️ Durée : {duration_str}\n"
         f"📝 Chunks traités : {chunks_processed}\n"
         f"🔍 Détections : {detections_count}\n"
         f"{resume}"
+        f"{quota_line}"
     )
 
     return _post_ntfy(

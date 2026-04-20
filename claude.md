@@ -24,6 +24,7 @@ URL : http://radionova.ice.infomaniak.ch/radionova-256.aac
 - transcriber.py                     → transcription via Groq API
 - detector.py                        → détection locale par mots-clés / regex
 - notifier.py                        → notifications push via ntfy.sh
+- quota_monitor.py                   → suivi des quotas Groq (local + CI)
 - config.py                          → variables d'environnement
 - .github/workflows/radio_watcher.yml → workflow GitHub Actions
 
@@ -39,6 +40,14 @@ Une notification ntfy récapitule les résultats.
 - Démarrage : résultats des health checks
 - Alerte détection : info extraite + transcription brute + confidence
 - Arrêt : durée, chunks traités, nombre de détections
+
+## Quota monitoring (quota_monitor.py)
+- Suivi en mémoire (session) + fichier JSON local (logs/quota_tracker.json)
+- Reset automatique des compteurs jour/mois
+- En CI (GitHub Actions, CI=true) : tracking mémoire uniquement, pas d'I/O fichier
+- Seuils d'alerte ntfy : 400 req/jour, 300 req/mois, 600 min audio/mois
+- Alerte dédiée sur erreur 429 Groq + pause 60s avant retry
+- Résumé quota affiché dans les notifications de démarrage et de fin
 
 ## Conventions
 - Code commenté en français

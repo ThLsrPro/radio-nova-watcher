@@ -1,6 +1,11 @@
 """
 detector.py — Détection locale par mots-clés et expressions régulières.
 Aucun appel API externe : analyse entièrement en mémoire.
+
+Logique en trois niveaux :
+  - Mots-clés PRIMAIRES  : spécifiques à la billetterie, déclenchent seuls une détection.
+  - Mots-clés SECONDAIRES : génériques, nécessitent combinaison pour être significatifs.
+  - Mots-clés d'EXCLUSION : contexte publicitaire non-billetterie → annulent la détection.
 """
 
 import logging
@@ -12,88 +17,154 @@ import config
 
 logger = logging.getLogger(__name__)
 
-# ── Groupes de mots-clés ──────────────────────────────────────────────────────
-# Chaque groupe représente une catégorie sémantique distincte.
-# Trouver des correspondances dans plusieurs groupes augmente la confidence.
+# ── Mots-clés PRIMAIRES ───────────────────────────────────────────────────────
+# Très spécifiques au contexte billetterie/spectacle. Un seul suffit à déclencher
+# une détection (confidence ≥ 70).
 
-# Groupe 1 — Émission / lieu cible
-_PATTERNS_CIBLE: list[str] = [
-    r"la\s+derni[eè]re",
-    r"l['']europ[eé]en",
-    r"europ[eé]en\b",
-]
-
-# Groupe 2 — Billetterie / places / billets
-_PATTERNS_BILLET: list[str] = [
-    r"\bbillet(?:s|terie)?\b",
-    r"\bplace(?:s)?\b",
-    r"\bticket(?:s)?\b",
-    r"\breservation\b",
-    r"\br[eé]servation\b",
-    r"\br[eé]server\b",
-]
-
-# Groupe 3 — Action / disponibilité
-_PATTERNS_ACTION: list[str] = [
-    r"\ben\s+vente\b",
-    r"\bdisponible(?:s)?\b",
-    r"\b[àa]\s+partir\s+de\b",
-    r"\bd[eè]s\s+(?:le|ce|maintenant|aujourd)",
-    r"\bouverture\b",
-    r"\bachat\b",
-    r"\bacheter\b",
-    r"\boutilisez?\b",
-    r"\bprocurez?[-\s]vous\b",
-]
-
-# Groupe 4 — Sites / liens de billetterie
-_PATTERNS_SITE: list[str] = [
+_RAW_PRIMARY: list[str] = [
+    r"\bbilletteri[e]?\b",
+    r"\bbillet(?:s)?\b",
+    r"\br[eé]servation(?:s)?\b",
+    r"\br[eé]servez?\b",
+    r"places?\s+en\s+vente",
+    r"places?\s+disponibles?",
+    r"places?\s+limit[eé]es?",
     r"\bfnac(?:\.com)?\b",
     r"\bdigitick\b",
     r"\bshotgun\b",
     r"\bbilletweb\b",
-    r"\bticketmaster\b",
     r"\bweezevent\b",
+    r"\bticketmaster\b",
     r"\blivenation\b",
     r"\bhelloasso\b",
-    r"https?://\S+",          # tout lien URL
+    r"europ[eé]en\s+paris",
+    r"l[''\s]europ[eé]en\b",
+    r"la\s+derni[eè]re",          # mention de l'émission cible
 ]
 
-# Compilation des groupes en objets regex (insensible à la casse, accents inclus)
-_GROUPS: list[tuple[str, list[re.Pattern[str]]]] = [
-    ("cible",  [re.compile(p, re.IGNORECASE) for p in _PATTERNS_CIBLE]),
-    ("billet", [re.compile(p, re.IGNORECASE) for p in _PATTERNS_BILLET]),
-    ("action", [re.compile(p, re.IGNORECASE) for p in _PATTERNS_ACTION]),
-    ("site",   [re.compile(p, re.IGNORECASE) for p in _PATTERNS_SITE]),
+# ── Mots-clés SECONDAIRES ─────────────────────────────────────────────────────
+# Génériques : seuls ils ne signifient rien (pub, météo, sport…).
+# Déclenchent une détection uniquement s'ils accompagnent au moins un primaire
+# OU s'ils sont au moins deux combinés ensemble.
+
+_RAW_SECONDARY: list[str] = [
+    r"\bticket(?:s)?\b",
+    r"\bconcert(?:s)?\b",
+    r"\bspectacle(?:s)?\b",
+    r"\bshow\b",
+    r"\bachat\b",
+    r"\bacheter\b",
+    r"\bcommander\b",
+    r"\bdisponible(?:s)?\b",
+    r"\ben\s+vente\b",
+    r"\ben\s+ligne\b",
+    r"\b[àa]\s+partir\s+de\b",
+    r"\bd[eè]s\s+(?:le|ce|maintenant|aujourd)",
+    r"\blien\b",
+    r"\bsite\b",
+    r"\bwww\b",
+    r"https?://\S+",
 ]
 
+# ── Mots-clés d'EXCLUSION ─────────────────────────────────────────────────────
+# Signaux forts de contexte publicitaire non-billetterie.
+# Leur présence ramène la confidence à 0.
 
-def _confidence_from_match_count(count: int) -> int:
-    """Calcule la confidence selon le nombre de groupes ayant matché."""
-    if count >= 3:
-        return 95
-    if count == 2:
-        return 75
-    if count == 1:
-        return 50
-    return 0
+_RAW_EXCLUSION: list[str] = [
+    r"\bfromage\b",
+    r"\bintermarché\b",
+    r"\bintermarche\b",
+    r"\bcarrefour\b",
+    r"\blidl\b",
+    r"\baldi\b",
+    r"\bleclerc\b",
+    r"\bauchain\b",
+    r"\bmonoprix\b",
+    r"\bfranprix\b",
+    r"\bsuper[uU]\b",
+    r"\bsupermarché\b",
+    r"\bsupermarche\b",
+    r"\bhypermarché\b",
+    r"\bhypermarche\b",
+    r"\beuros?\s+le\s+kilo\b",
+    r"\bpromotion(?:s)?\b",
+    r"\bpromo(?:s)?\b",
+    r"\bsoldes?\b",
+    r"\bremise(?:s)?\b",
+    r"\bvoiture(?:s)?\b",
+    r"\bimmobilier\b",
+    r"\bassurance(?:s)?\b",
+    r"\bmutuelle(?:s)?\b",
+    r"\bcr[eè]dit\b",
+    r"\bpr[eê]t\s+immobilier\b",
+    r"\btelephonie\b",
+    r"\btéléphonie\b",
+    r"\bforfait\s+(?:mobile|internet)\b",
+]
+
+# ── Compilation des patterns ───────────────────────────────────────────────────
+_PRIMARY   = [(p, re.compile(p, re.IGNORECASE)) for p in _RAW_PRIMARY]
+_SECONDARY = [(p, re.compile(p, re.IGNORECASE)) for p in _RAW_SECONDARY]
+_EXCLUSION = [re.compile(p, re.IGNORECASE) for p in _RAW_EXCLUSION]
 
 
-def _extract_matched_sentences(text: str, matched_patterns: list[re.Pattern[str]]) -> str:
+def _find_matches(text: str, patterns: list[tuple[str, re.Pattern[str]]]) -> list[str]:
+    """Retourne la liste des patterns bruts (chaînes) qui ont matché dans le texte."""
+    return [raw for raw, compiled in patterns if compiled.search(text)]
+
+
+def _is_excluded(text: str) -> bool:
+    """Retourne True si un mot-clé d'exclusion est présent dans le texte."""
+    return any(p.search(text) for p in _EXCLUSION)
+
+
+def _compute_confidence(
+    primary_hits: list[str],
+    secondary_hits: list[str],
+) -> tuple[int, bool]:
     """
-    Retourne les phrases du texte qui contiennent au moins un pattern matché.
-    Utilisé pour remplir extracted_info avec le contexte exact.
+    Calcule (confidence, action_required) selon les règles de combinaison.
+
+    Règles :
+      - Exclusion présente                               → (0, False)  [géré avant l'appel]
+      - 0 primaire, < 2 secondaires                      → (0, False)
+      - 0 primaire, ≥ 2 secondaires                      → (30, False)
+      - 1 primaire seul (0 secondaire)                   → (70, False)
+      - 1 primaire + ≥ 1 secondaire                      → (85, True)
+      - 2 primaires                                      → (90, True)
+      - ≥ 3 primaires                                    → (98, True)
     """
+    np = len(primary_hits)
+    ns = len(secondary_hits)
+
+    if np == 0:
+        if ns >= 2:
+            return 30, False
+        return 0, False
+    if np == 1:
+        if ns == 0:
+            return 70, False
+        return 85, True
+    if np == 2:
+        return 90, True
+    return 98, True
+
+
+def _extract_relevant_sentences(
+    text: str,
+    primary_compiled: list[re.Pattern[str]],
+    secondary_compiled: list[re.Pattern[str]],
+) -> str:
+    """Retourne les phrases contenant au moins un pattern matché."""
+    all_patterns = primary_compiled + secondary_compiled
     sentences = re.split(r"[.!?;\n]+", text)
     relevant: list[str] = []
     for sentence in sentences:
         sentence = sentence.strip()
         if not sentence:
             continue
-        for pattern in matched_patterns:
-            if pattern.search(sentence):
-                relevant.append(sentence)
-                break  # une seule fois par phrase
+        if any(p.search(sentence) for p in all_patterns):
+            relevant.append(sentence)
     return " | ".join(relevant) if relevant else ""
 
 
@@ -104,7 +175,7 @@ class DetectionResult:
     confidence: int
     extracted_info: str
     action_required: bool
-    matched_groups: list[str] = field(repr=False, default_factory=list)
+    matched_keywords: list[str] = field(default_factory=list)
 
 
 class Detector:
@@ -130,36 +201,37 @@ class Detector:
                 detected=False, confidence=0, extracted_info="", action_required=False
             )
 
-        matched_groups: list[str] = []
-        all_matched_patterns: list[re.Pattern[str]] = []
+        # Vérification d'exclusion en priorité
+        if _is_excluded(text):
+            logger.debug("Contexte publicitaire détecté (mot-clé d'exclusion) — ignoré.")
+            return DetectionResult(
+                detected=False, confidence=0, extracted_info="", action_required=False
+            )
 
-        # Parcourir chaque groupe et vérifier si au moins un pattern matche
-        for group_name, patterns in _GROUPS:
-            for pattern in patterns:
-                if pattern.search(text):
-                    matched_groups.append(group_name)
-                    all_matched_patterns.extend(patterns)  # pour l'extraction du contexte
-                    break  # un seul match suffit par groupe
+        primary_hits   = _find_matches(text, _PRIMARY)
+        secondary_hits = _find_matches(text, _SECONDARY)
 
-        confidence = _confidence_from_match_count(len(matched_groups))
-        detected = confidence >= 50  # au moins 1 groupe matché
+        confidence, action_required = _compute_confidence(primary_hits, secondary_hits)
+        detected = confidence >= 70  # seuil minimal pour comptabiliser une détection
 
-        # extracted_info : phrases contenant les mots-clés détectés
+        matched_keywords = primary_hits + secondary_hits
+
         extracted_info = ""
-        if detected:
-            extracted_info = _extract_matched_sentences(text, all_matched_patterns)
+        if detected or confidence == 30:
+            p_comp = [c for r, c in _PRIMARY   if r in primary_hits]
+            s_comp = [c for r, c in _SECONDARY if r in secondary_hits]
+            extracted_info = _extract_relevant_sentences(text, p_comp, s_comp)
 
-        # action_required : vrai si on a à la fois un élément cible ET billet/action/site
-        has_cible = "cible" in matched_groups
-        has_billet_or_action = bool(
-            {"billet", "action", "site"} & set(matched_groups)
-        )
-        action_required = has_cible and has_billet_or_action
-
-        if detected:
+        if confidence >= 70:
+            logger.info(
+                f"Détection positive — confidence={confidence} "
+                f"action_required={action_required} "
+                f"mots-clés={matched_keywords}"
+            )
+        else:
             logger.debug(
-                f"Groupes matchés : {matched_groups} — "
-                f"confidence={confidence} — action_required={action_required}"
+                f"Détection faible — confidence={confidence} "
+                f"mots-clés={matched_keywords}"
             )
 
         return DetectionResult(
@@ -167,7 +239,7 @@ class Detector:
             confidence=confidence,
             extracted_info=extracted_info,
             action_required=action_required,
-            matched_groups=matched_groups,
+            matched_keywords=matched_keywords,
         )
 
     def should_notify(self, result: DetectionResult) -> bool:

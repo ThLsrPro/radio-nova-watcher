@@ -10,6 +10,7 @@ from pathlib import Path
 from groq import Groq, APIConnectionError, APIStatusError, RateLimitError
 
 import config
+import quota_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +19,15 @@ LOG_DIR.mkdir(exist_ok=True)
 TRANSCRIPTION_LOG = LOG_DIR / "transcriptions.log"
 
 MAX_RETRIES = 3
+RATE_LIMIT_PAUSE_SECONDS = 60
 
 
 @dataclass
 class TranscriptionResult:
     """Résultat d'une transcription Groq."""
     text: str
-    duration_seconds: float
+    duration_seconds: float   # durée de l'appel API
+    audio_duration_seconds: float  # durée du chunk audio (= CHUNK_DURATION_SECONDS)
     chunk_path: str
 
 
@@ -33,7 +36,6 @@ class Transcriber:
 
     def __init__(self) -> None:
         self._client = Groq(api_key=config.GROQ_API_KEY)
-        # Ouvrir le fichier de log en mode append
         self._log_file = TRANSCRIPTION_LOG.open("a", encoding="utf-8")
         logger.info("Transcriber Groq initialisé (modèle : whisper-large-v3).")
 
@@ -64,20 +66,31 @@ class Transcriber:
                         response_format="text",
                     )
                 elapsed = time.time() - start_time
-                # response est une chaîne brute quand response_format="text"
                 text: str = response.strip() if isinstance(response, str) else response.text.strip()
 
                 self._log_transcription(text, chunk_path)
+
+                # Enregistrer la requête dans le quota monitor
+                quota_monitor.track_groq_request(
+                    audio_duration_seconds=config.CHUNK_DURATION_SECONDS
+                )
+
                 return TranscriptionResult(
                     text=text,
                     duration_seconds=elapsed,
+                    audio_duration_seconds=config.CHUNK_DURATION_SECONDS,
                     chunk_path=str(chunk_path),
                 )
 
             except RateLimitError as exc:
                 logger.warning(
-                    f"Limite de débit Groq (tentative {attempt}/{MAX_RETRIES}) : {exc}"
+                    f"Rate limit Groq (tentative {attempt}/{MAX_RETRIES}) : {exc}"
                 )
+                # Alerte ntfy + pause longue avant retry
+                quota_monitor.notify_rate_limit()
+                time.sleep(RATE_LIMIT_PAUSE_SECONDS)
+                continue  # ne pas consommer le backoff exponentiel sur 429
+
             except APIConnectionError as exc:
                 logger.warning(
                     f"Connexion Groq impossible (tentative {attempt}/{MAX_RETRIES}) : {exc}"
@@ -92,7 +105,7 @@ class Transcriber:
             if attempt < MAX_RETRIES:
                 logger.info(f"Nouvelle tentative dans {backoff}s…")
                 time.sleep(backoff)
-                backoff *= 2  # backoff exponentiel
+                backoff *= 2
 
         logger.error(f"Échec de la transcription de {chunk_path} après {MAX_RETRIES} tentatives.")
         return None

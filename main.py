@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 import requests
 
 import config
+import quota_monitor
 from audio_capture import capture_chunks, cleanup_all_chunks
 from detector import Detector
 from notifier import (
@@ -52,10 +53,10 @@ def check_internet() -> str:
 def check_radio_stream() -> str:
     """Vérifie que le flux Radio Nova est accessible."""
     try:
-        resp = requests.head(config.RADIO_STREAM_URL, timeout=10, allow_redirects=True)
-        if resp.status_code < 400:
-            return "✅ Flux Radio Nova accessible"
-        return f"❌ Flux inaccessible (HTTP {resp.status_code})"
+        with requests.get(config.RADIO_STREAM_URL, stream=True, timeout=5) as resp:
+            if resp.status_code < 400:
+                return "✅ Flux Radio Nova accessible"
+            return f"❌ Flux inaccessible (HTTP {resp.status_code})"
     except Exception as exc:
         return f"❌ Flux inaccessible ({exc})"
 
@@ -142,8 +143,11 @@ def run_surveillance() -> None:
     # ── Health checks ──────────────────────────────────────────────────────────
     check_results, all_ok = run_health_checks()
 
-    # Notification de démarrage (inclut les résultats des checks)
-    ntfy_ok = send_startup_notification(check_results)
+    # Notification de démarrage (inclut les résultats des checks + quota mensuel)
+    ntfy_ok = send_startup_notification(
+        check_results,
+        quota_summary=quota_monitor.get_monthly_summary(),
+    )
     if ntfy_ok:
         print(f"  Notification de démarrage envoyée sur ntfy.")
     else:
@@ -186,7 +190,8 @@ def run_surveillance() -> None:
             if detection.detected:
                 logger.info(
                     f"Détection positive ! confidence={detection.confidence} "
-                    f"action_required={detection.action_required}"
+                    f"action_required={detection.action_required} "
+                    f"mots-clés={detection.matched_keywords}"
                 )
 
             # ── Notification ───────────────────────────────────────────────────
@@ -213,12 +218,13 @@ def run_surveillance() -> None:
         transcriber.close()
         cleanup_all_chunks()
 
-        # Notification de fin de surveillance
+        # Notification de fin de surveillance (avec résumé quota de session)
         send_shutdown_notification(
             duration_seconds=duration,
             chunks_processed=chunks_processed,
             detections_count=detections_count,
             detection_summary=last_detection_info,
+            session_quota_summary=quota_monitor.get_session_summary(),
         )
         logger.info("Arrêt propre.")
 
