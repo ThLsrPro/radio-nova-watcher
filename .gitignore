@@ -1,0 +1,19 @@
+# Environnement virtuel Python
+venv/
+
+# Fichier de config sensible
+.env
+
+# Chunks audio temporaires
+tmp_chunks/
+
+# Logs
+logs/
+
+# Fichiers Python compilés
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
