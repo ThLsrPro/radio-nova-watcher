@@ -581,7 +581,7 @@ footer a:hover{color:var(--text-primary)}
 const GIST_RAW_URL = "https://gist.githubusercontent.com/ThLsrPro/6ff7e515265e7b6079bb0eff629c6427/raw/a992612d544b64e9ee20539a4fa98b74e1105528/sessions.json";
 const LS_KEY      = "rnw_cache";
 const LS_THEME    = "theme";
-const LS_TOKEN    = "rnw_gh_token";
+const LS_TOKEN    = "gist_token";
 
 // Identifiants GitHub statiques (GIST_ID résolu dynamiquement via l'API)
 const _gistMatch  = GIST_RAW_URL.match(/gist\.githubusercontent\.com\/([^/]+)/);
@@ -724,12 +724,12 @@ function updateBadge(controlStatus) {
 }
 
 // ── Gestion du token GitHub ───────────────────────────────────────────────
-function getToken() { return localStorage.getItem(LS_TOKEN) || ""; }
+function getToken() { return (localStorage.getItem(LS_TOKEN) || "").trim(); }
 
 function saveToken() {
   const val = document.getElementById("token-input").value.trim();
   if (!val) return;
-  localStorage.setItem(LS_TOKEN, val);
+  localStorage.setItem(LS_TOKEN, val.trim());
   document.getElementById("token-input").value = "";
   initControlUI();
 }
@@ -783,8 +783,10 @@ function initControlUI() {
 // ── Résolution dynamique du Gist ID ──────────────────────────────────────
 // Retourne l'id trouvé ou null si absent/erreur
 async function resolveGistId(token) {
+  console.log("[resolveGistId] Token (5 premiers chars):", token.substring(0, 5));
+  console.log("[resolveGistId] Header:", "token " + token.substring(0, 10) + "...");
   const ghHeaders = {
-    Authorization: `Bearer ${token}`,
+    Authorization: `token ${token}`,
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
   };
@@ -822,7 +824,7 @@ async function loadControlStatus(token) {
   if (!window.GIST_ID || !token) return;
 
   const ghHeaders = {
-    Authorization: `Bearer ${token}`,
+    Authorization: `token ${token}`,
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
   };
@@ -877,12 +879,14 @@ function applyControlUI(ctrlStatus, manualTrigger, token, statusEl, pauseBtn, tr
 // Retourne {ok: bool, error: string|null}
 async function patchControl(fields) {
   const token = getToken();
+  console.log("[patchControl] Token (5 premiers chars):", token.substring(0, 5));
+  console.log("[patchControl] Header:", "token " + token.substring(0, 10) + "...");
   console.log("[patchControl] window.GIST_ID utilisé :", window.GIST_ID);
-  if (!token) return { ok: false, error: "Aucun token configuré" };
+  if (!token) return { ok: false, error: "Token manquant" };
   if (!window.GIST_ID) return { ok: false, error: "Gist ID non résolu — rechargez le token" };
 
   const ghHeaders = {
-    Authorization: `Bearer ${token}`,
+    Authorization: `token ${token}`,
     Accept: "application/vnd.github+json",
     "Content-Type": "application/json",
     "X-GitHub-Api-Version": "2022-11-28",
@@ -995,7 +999,7 @@ async function triggerNow() {
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `token ${token}`,
           Accept: "application/vnd.github+json",
           "Content-Type": "application/json",
           "X-GitHub-Api-Version": "2022-11-28",
