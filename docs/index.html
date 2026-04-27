@@ -583,14 +583,14 @@ const LS_KEY      = "rnw_cache";
 const LS_THEME    = "theme";
 const LS_TOKEN    = "rnw_gh_token";
 
-// Identifiants GitHub dérivés de l'URL du Gist
-const _gistMatch  = GIST_RAW_URL.match(/gist\.githubusercontent\.com\/([^/]+)\/([^/]+)/);
+// Identifiants GitHub statiques (GIST_ID résolu dynamiquement via l'API)
+const _gistMatch  = GIST_RAW_URL.match(/gist\.githubusercontent\.com\/([^/]+)/);
 const GITHUB_USER = _gistMatch ? _gistMatch[1] : "ThLsrPro";
-const GIST_ID     = _gistMatch ? _gistMatch[2] : "";
 const GITHUB_REPO = "radio-nova-watcher";
 const WORKFLOW_FILE = "radio_watcher.yml";
 const GIST_API    = "https://api.github.com/gists";
-console.log("[init] GITHUB_USER:", GITHUB_USER, "GIST_ID:", GIST_ID);
+const GIST_DESCRIPTION = "radio-nova-watcher-data";
+window.GIST_ID = null; // résolu dynamiquement au login
 
 // ── Session state ─────────────────────────────────────────────────────────
 let _allSessions = [];
@@ -755,8 +755,18 @@ function initControlUI() {
     document.querySelector(".btn-config-save").style.display = "none";
     status.style.display    = "inline";
     clrBtn.style.display    = "inline";
-    // Charger le statut de contrôle
-    loadControlStatus(token);
+    // Résoudre l'ID du Gist dynamiquement puis charger le statut
+    status.textContent = "Connexion…";
+    status.style.color = "var(--text-secondary)";
+    resolveGistId(token).then(id => {
+      if (!id) {
+        status.textContent = "Aucun Gist trouvé — lancez d'abord une session avec GIST_ENABLED=true";
+        status.style.color = "var(--warning)";
+        return;
+      }
+      window.GIST_ID = id;
+      loadControlStatus(token);
+    });
   } else {
     // Pas de token : afficher le champ de saisie
     input.style.display     = "";
@@ -770,6 +780,35 @@ function initControlUI() {
   }
 }
 
+// ── Résolution dynamique du Gist ID ──────────────────────────────────────
+// Retourne l'id trouvé ou null si absent/erreur
+async function resolveGistId(token) {
+  const ghHeaders = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+  try {
+    const resp = await fetch(GIST_API, { headers: ghHeaders });
+    if (!resp.ok) {
+      const body = await resp.text();
+      console.error("[resolveGistId] GET /gists erreur HTTP", resp.status, body);
+      return null;
+    }
+    const gists = await resp.json();
+    const found = gists.find(g => g.description === GIST_DESCRIPTION);
+    if (!found) {
+      console.warn("[resolveGistId] Aucun Gist trouvé avec description :", GIST_DESCRIPTION);
+      return null;
+    }
+    console.log("[resolveGistId] Gist ID trouvé :", found.id);
+    return found.id;
+  } catch(e) {
+    console.error("[resolveGistId] Erreur réseau :", e);
+    return null;
+  }
+}
+
 // ── Chargement du statut de contrôle ─────────────────────────────────────
 async function loadControlStatus(token) {
   const status  = document.getElementById("config-status");
@@ -779,8 +818,8 @@ async function loadControlStatus(token) {
   if (pauseBtn) pauseBtn.disabled = true;
   if (trigBtn)  trigBtn.disabled  = true;
 
-  console.log("[loadControlStatus] GIST_ID :", GIST_ID, "USER :", GITHUB_USER);
-  if (!GIST_ID || !token) return;
+  console.log("[loadControlStatus] window.GIST_ID :", window.GIST_ID, "USER :", GITHUB_USER);
+  if (!window.GIST_ID || !token) return;
 
   const ghHeaders = {
     Authorization: `Bearer ${token}`,
@@ -789,7 +828,7 @@ async function loadControlStatus(token) {
   };
 
   try {
-    const resp = await fetch(`${GIST_API}/${GIST_ID}`, { headers: ghHeaders });
+    const resp = await fetch(`${GIST_API}/${window.GIST_ID}`, { headers: ghHeaders });
     console.log("[loadControlStatus] GET Gist status:", resp.status);
     if (!resp.ok) {
       const body = await resp.text();
@@ -838,9 +877,9 @@ function applyControlUI(ctrlStatus, manualTrigger, token, statusEl, pauseBtn, tr
 // Retourne {ok: bool, error: string|null}
 async function patchControl(fields) {
   const token = getToken();
-  console.log("[patchControl] GIST_ID utilisé :", GIST_ID);
+  console.log("[patchControl] window.GIST_ID utilisé :", window.GIST_ID);
   if (!token) return { ok: false, error: "Aucun token configuré" };
-  if (!GIST_ID) return { ok: false, error: "GIST_ID introuvable dans l'URL du Gist" };
+  if (!window.GIST_ID) return { ok: false, error: "Gist ID non résolu — rechargez le token" };
 
   const ghHeaders = {
     Authorization: `Bearer ${token}`,
@@ -852,7 +891,7 @@ async function patchControl(fields) {
   // 1. Lire l'état actuel (control.json peut ne pas encore exister)
   let ctrl = { status: "active", manual_trigger: false };
   try {
-    const resp = await fetch(`${GIST_API}/${GIST_ID}`, { headers: ghHeaders });
+    const resp = await fetch(`${GIST_API}/${window.GIST_ID}`, { headers: ghHeaders });
     console.log("[patchControl] GET Gist status:", resp.status);
     if (!resp.ok) {
       const body = await resp.text();
@@ -883,7 +922,7 @@ async function patchControl(fields) {
 
   // 3. PATCH vers le Gist (crée control.json s'il n'existe pas)
   try {
-    const patch = await fetch(`${GIST_API}/${GIST_ID}`, {
+    const patch = await fetch(`${GIST_API}/${window.GIST_ID}`, {
       method: "PATCH",
       headers: ghHeaders,
       body: JSON.stringify({ files: { "control.json": { content: JSON.stringify(ctrl, null, 2) } } }),
