@@ -590,6 +590,7 @@ const GIST_ID     = _gistMatch ? _gistMatch[2] : "";
 const GITHUB_REPO = "radio-nova-watcher";
 const WORKFLOW_FILE = "radio_watcher.yml";
 const GIST_API    = "https://api.github.com/gists";
+console.log("[init] GITHUB_USER:", GITHUB_USER, "GIST_ID:", GIST_ID);
 
 // ── Session state ─────────────────────────────────────────────────────────
 let _allSessions = [];
@@ -778,24 +779,39 @@ async function loadControlStatus(token) {
   if (pauseBtn) pauseBtn.disabled = true;
   if (trigBtn)  trigBtn.disabled  = true;
 
+  console.log("[loadControlStatus] GIST_ID :", GIST_ID, "USER :", GITHUB_USER);
   if (!GIST_ID || !token) return;
+
+  const ghHeaders = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+
   try {
-    const resp = await fetch(`${GIST_API}/${GIST_ID}`, {
-      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json" }
-    });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const resp = await fetch(`${GIST_API}/${GIST_ID}`, { headers: ghHeaders });
+    console.log("[loadControlStatus] GET Gist status:", resp.status);
+    if (!resp.ok) {
+      const body = await resp.text();
+      console.error("[loadControlStatus] erreur body:", body);
+      throw new Error(`HTTP ${resp.status}`);
+    }
     const gist = await resp.json();
     const ctrlFile = gist.files["control.json"];
     let ctrl = { status: "active", manual_trigger: false };
     if (ctrlFile) {
-      const raw = await fetch(ctrlFile.raw_url + "?t=" + Date.now());
+      // raw_url d'un Gist privé nécessite le token
+      const raw = await fetch(ctrlFile.raw_url + "?t=" + Date.now(), { headers: ghHeaders });
+      console.log("[loadControlStatus] GET control.json status:", raw.status);
       if (raw.ok) ctrl = await raw.json();
+    } else {
+      console.log("[loadControlStatus] control.json absent — statut par défaut : active");
     }
     _controlStatus = ctrl.status || "active";
     applyControlUI(_controlStatus, ctrl.manual_trigger, token, status, pauseBtn, trigBtn);
   } catch(e) {
     if (status) { status.textContent = "Erreur token"; status.style.color = "var(--warning)"; }
-    console.warn("Contrôle Gist inaccessible :", e);
+    console.error("[loadControlStatus] Gist inaccessible :", e);
   }
 }
 
@@ -819,42 +835,70 @@ function applyControlUI(ctrlStatus, manualTrigger, token, statusEl, pauseBtn, tr
 }
 
 // ── Écriture dans control.json du Gist ───────────────────────────────────
+// Retourne {ok: bool, error: string|null}
 async function patchControl(fields) {
   const token = getToken();
-  if (!token || !GIST_ID) return false;
-  // Lire l'état actuel
+  console.log("[patchControl] GIST_ID utilisé :", GIST_ID);
+  if (!token) return { ok: false, error: "Aucun token configuré" };
+  if (!GIST_ID) return { ok: false, error: "GIST_ID introuvable dans l'URL du Gist" };
+
+  const ghHeaders = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github+json",
+    "Content-Type": "application/json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+
+  // 1. Lire l'état actuel (control.json peut ne pas encore exister)
   let ctrl = { status: "active", manual_trigger: false };
   try {
-    const resp = await fetch(`${GIST_API}/${GIST_ID}`, {
-      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json" }
-    });
-    if (resp.ok) {
-      const gist = await resp.json();
-      const ctrlFile = gist.files["control.json"];
-      if (ctrlFile) {
-        const raw = await fetch(ctrlFile.raw_url + "?t=" + Date.now());
-        if (raw.ok) ctrl = await raw.json();
-      }
+    const resp = await fetch(`${GIST_API}/${GIST_ID}`, { headers: ghHeaders });
+    console.log("[patchControl] GET Gist status:", resp.status);
+    if (!resp.ok) {
+      const body = await resp.text();
+      console.error("[patchControl] GET Gist erreur body:", body);
+      return { ok: false, error: `Lecture Gist échouée (HTTP ${resp.status}) : ${body}` };
     }
-  } catch(_) {}
-  // Appliquer les modifications
+    const gist = await resp.json();
+    const ctrlFile = gist.files["control.json"];
+    if (ctrlFile) {
+      // raw_url d'un Gist privé nécessite le token
+      const raw = await fetch(ctrlFile.raw_url + "?t=" + Date.now(), { headers: ghHeaders });
+      console.log("[patchControl] GET control.json status:", raw.status);
+      if (raw.ok) ctrl = await raw.json();
+    } else {
+      console.log("[patchControl] control.json absent du Gist — sera créé");
+    }
+  } catch(e) {
+    console.error("[patchControl] Erreur réseau GET:", e);
+    return { ok: false, error: `Erreur réseau : ${e.message}` };
+  }
+
+  // 2. Appliquer les modifications
   Object.assign(ctrl, fields, {
-    updated_at: new Date().toISOString().slice(0,19),
+    updated_at: new Date().toISOString().slice(0, 19),
     updated_by: "dashboard",
   });
-  // Pousser
+  console.log("[patchControl] Nouvel état à pousser :", ctrl);
+
+  // 3. PATCH vers le Gist (crée control.json s'il n'existe pas)
   try {
     const patch = await fetch(`${GIST_API}/${GIST_ID}`, {
       method: "PATCH",
-      headers: {
-        Authorization: `token ${token}`,
-        Accept: "application/vnd.github.v3+json",
-        "Content-Type": "application/json",
-      },
+      headers: ghHeaders,
       body: JSON.stringify({ files: { "control.json": { content: JSON.stringify(ctrl, null, 2) } } }),
     });
-    return patch.ok;
-  } catch(_) { return false; }
+    console.log("[patchControl] PATCH status:", patch.status);
+    if (!patch.ok) {
+      const body = await patch.text();
+      console.error("[patchControl] PATCH erreur body:", body);
+      return { ok: false, error: `Écriture Gist échouée (HTTP ${patch.status}) : ${body}` };
+    }
+    return { ok: true, error: null };
+  } catch(e) {
+    console.error("[patchControl] Erreur réseau PATCH:", e);
+    return { ok: false, error: `Erreur réseau PATCH : ${e.message}` };
+  }
 }
 
 // ── Bouton Pause / Reprendre ──────────────────────────────────────────────
@@ -871,8 +915,8 @@ async function togglePause() {
   if (trigBtn)  trigBtn.disabled  = true;
 
   const newStatus = isPaused ? "active" : "paused";
-  const ok = await patchControl({ status: newStatus });
-  if (ok) {
+  const result = await patchControl({ status: newStatus });
+  if (result.ok) {
     _controlStatus = newStatus;
     applyControlUI(
       newStatus, false, getToken(),
@@ -880,7 +924,7 @@ async function togglePause() {
       pauseBtn, trigBtn
     );
   } else {
-    alert("Erreur lors de la mise à jour. Vérifiez votre token.");
+    alert(`Erreur lors de la mise à jour :\n${result.error}`);
     if (pauseBtn) pauseBtn.disabled = false;
     if (trigBtn)  trigBtn.disabled  = false;
   }
@@ -894,30 +938,44 @@ async function triggerNow() {
   if (trigBtn) { trigBtn.disabled = true; trigBtn.textContent = "⏳ Envoi…"; }
 
   // 1. Poser manual_trigger=true + remettre status=active dans le Gist
-  const gistOk = await patchControl({ status: "active", manual_trigger: true });
+  const gistResult = await patchControl({ status: "active", manual_trigger: true });
+
+  if (!gistResult.ok) {
+    alert(`Erreur mise à jour Gist :\n${gistResult.error}`);
+    if (trigBtn) { trigBtn.disabled = false; trigBtn.textContent = "⚡ Lancer"; }
+    return;
+  }
 
   // 2. Déclencher le workflow GitHub Actions
   const token = getToken();
   let dispatchOk = false;
-  if (token) {
-    try {
-      const r = await fetch(
-        `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `token ${token}`,
-            Accept: "application/vnd.github.v3+json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ ref: "main" }),
-        }
-      );
-      dispatchOk = r.status === 204;
-    } catch(_) {}
+  let dispatchError = "";
+  try {
+    const r = await fetch(
+      `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+        body: JSON.stringify({ ref: "main" }),
+      }
+    );
+    console.log("[triggerNow] dispatch status:", r.status);
+    dispatchOk = r.status === 204;
+    if (!dispatchOk) {
+      dispatchError = await r.text();
+      console.error("[triggerNow] dispatch erreur body:", dispatchError);
+    }
+  } catch(e) {
+    dispatchError = e.message;
+    console.error("[triggerNow] dispatch erreur réseau:", e);
   }
 
-  if (gistOk && dispatchOk) {
+  if (dispatchOk) {
     alert("Surveillance lancée ! Le workflow GitHub Actions démarre.");
     _controlStatus = "active";
     applyControlUI(
@@ -926,11 +984,8 @@ async function triggerNow() {
       document.getElementById("btn-pause"),
       trigBtn
     );
-  } else if (gistOk) {
-    alert("Gist mis à jour, mais le déclenchement du workflow a échoué.\nLancez manuellement via l'onglet Actions de GitHub.");
-    if (trigBtn) { trigBtn.disabled = false; trigBtn.textContent = "⚡ Lancer"; }
   } else {
-    alert("Erreur lors de la mise à jour. Vérifiez votre token.");
+    alert(`Gist mis à jour, mais déclenchement workflow échoué :\n${dispatchError}\n\nLancez manuellement via l'onglet Actions de GitHub.`);
     if (trigBtn) { trigBtn.disabled = false; trigBtn.textContent = "⚡ Lancer"; }
   }
 }
