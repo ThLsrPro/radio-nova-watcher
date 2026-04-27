@@ -171,6 +171,34 @@ def send_shutdown_notification(
     )
 
 
+def send_pause_notification() -> bool:
+    """Notifie que la surveillance a été annulée (mode pause)."""
+    body = (
+        "⏸ Surveillance annulee - mode pause actif\n\n"
+        "Le watcher a detecte que la surveillance est en pause.\n"
+        "Pour relancer, utilisez le dashboard ou scripts/trigger.py --resume"
+    )
+    return _post_ntfy(
+        title="Radio Nova Watcher - Pause",
+        body=body,
+        priority="low",
+        tags="no_entry_sign,radio",
+    )
+
+
+def send_control_notification(action: str, details: str = "") -> bool:
+    """Notifie d'un changement de contrôle via trigger.py ou dashboard."""
+    body = f"Radio Nova Watcher — Controle\n\nAction : {action}"
+    if details:
+        body += f"\n{details}"
+    return _post_ntfy(
+        title="Radio Nova Watcher - Controle",
+        body=body,
+        priority="low",
+        tags="gear,radio",
+    )
+
+
 def send_test_notification() -> bool:
     """Envoie un message de test pour vérifier la configuration ntfy."""
     body = (

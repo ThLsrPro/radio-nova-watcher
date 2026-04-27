@@ -33,6 +33,7 @@ from audio_capture import capture_chunks, cleanup_all_chunks
 from detector import Detector
 from notifier import (
     send_notification,
+    send_pause_notification,
     send_shutdown_notification,
     send_startup_notification,
     send_test_notification,
@@ -121,6 +122,17 @@ def run_surveillance() -> None:
 
     # ── Archiveur Gist ─────────────────────────────────────────────────────────
     archiver = GistArchiver()
+
+    # ── Vérification du contrôle marche/pause ─────────────────────────────────
+    ctrl = archiver.get_control()
+    if ctrl["status"] == "paused" and not ctrl["manual_trigger"]:
+        logger.info("Mode pause actif — surveillance annulée par control.json.")
+        send_pause_notification()
+        sys.exit(0)
+    elif ctrl["manual_trigger"]:
+        logger.info("Déclenchement manuel détecté — réinitialisation du flag.")
+        archiver.set_control(manual_trigger=False)
+
     archiver.start_session()
 
     print_startup_banner(archiver)

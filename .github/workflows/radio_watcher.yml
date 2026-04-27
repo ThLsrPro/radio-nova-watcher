@@ -13,10 +13,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ── Surveillance dominicale ──────────────────────────────────────────────────
+  # ── Surveillance dominicale (schedule uniquement) ────────────────────────────
   watch:
     runs-on: ubuntu-latest
     timeout-minutes: 130
+    if: github.event_name == 'schedule'
     # Nécessaire pour que le job deploy-pages puisse commiter
     permissions:
       contents: write
@@ -47,7 +48,26 @@ jobs:
       - name: Installer les dépendances Python
         run: pip install -r requirements.txt
 
+      - name: Vérifier le statut de contrôle
+        id: check-control
+        run: |
+          python -c "
+          import sys, os
+          sys.path.insert(0, '.')
+          from archiver import GistArchiver
+          a = GistArchiver()
+          ctrl = a.get_control()
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              if ctrl['status'] == 'paused' and not ctrl['manual_trigger']:
+                  print('Mode pause actif - surveillance annulee')
+                  f.write('should_run=false\n')
+              else:
+                  print('Statut OK - demarrage surveillance')
+                  f.write('should_run=true\n')
+          "
+
       - name: Lancer la surveillance
+        if: steps.check-control.outputs.should_run == 'true'
         run: python main.py
 
       - name: Mettre à jour le dashboard GitHub Pages
@@ -92,6 +112,98 @@ jobs:
             -H "Priority: high" \
             -H "Tags: x,github" \
             -d "❌ GitHub Actions — Erreur lors du lancement du watcher.
+
+          Consultez les logs : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            "${{ secrets.NTFY_SERVER }}/${{ secrets.NTFY_TOPIC }}"
+
+  # ── Déclenchement manuel via workflow_dispatch ──────────────────────────────
+  manual_trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 130
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+
+    env:
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      NTFY_SERVER: ${{ secrets.NTFY_SERVER }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      RADIO_STREAM_URL: ${{ secrets.RADIO_STREAM_URL }}
+      CHUNK_DURATION_SECONDS: ${{ secrets.CHUNK_DURATION_SECONDS }}
+      DETECTION_COOLDOWN_MINUTES: ${{ secrets.DETECTION_COOLDOWN_MINUTES }}
+      GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+      GIST_ENABLED: ${{ secrets.GIST_ENABLED }}
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Installer FFmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Installer les dépendances Python
+        run: pip install -r requirements.txt
+
+      - name: Forcer le déclenchement manuel dans le Gist
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from archiver import GistArchiver
+          a = GistArchiver()
+          a.set_control(manual_trigger=True)
+          print('manual_trigger=true defini dans le Gist')
+          "
+
+      - name: Lancer la surveillance
+        run: python main.py
+
+      - name: Mettre à jour le dashboard GitHub Pages
+        if: always() && env.GIST_ENABLED == 'true' && env.GIST_TOKEN != ''
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ENABLED: ${{ secrets.GIST_ENABLED }}
+        run: |
+          GIST_RAW=$(python - <<'EOF'
+          import os, requests, json
+          token = os.environ["GIST_TOKEN"]
+          headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
+          resp = requests.get("https://api.github.com/gists", headers=headers, timeout=10)
+          for g in resp.json():
+              if g.get("description") == "radio-nova-watcher-data":
+                  gist_id = g["id"]
+                  detail = requests.get(f"https://api.github.com/gists/{gist_id}", headers=headers, timeout=10).json()
+                  print(detail["files"]["sessions.json"]["raw_url"])
+                  break
+          EOF
+          )
+          if [ -n "$GIST_RAW" ]; then
+            python docs/generate_dashboard.py "$GIST_RAW"
+          fi
+
+      - name: Commiter et pousser le dashboard mis à jour
+        if: always() && env.GIST_ENABLED == 'true' && env.GIST_TOKEN != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/index.html
+          git diff --cached --quiet || git commit -m "chore: update dashboard Gist URL [skip ci]"
+          git push
+
+      - name: Notifier en cas d'échec
+        if: failure()
+        run: |
+          curl -s \
+            -H "Title: Radio Nova Watcher - Erreur GitHub Actions" \
+            -H "Priority: high" \
+            -H "Tags: x,github" \
+            -d "❌ GitHub Actions (déclenchement manuel) — Erreur lors du lancement.
 
           Consultez les logs : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             "${{ secrets.NTFY_SERVER }}/${{ secrets.NTFY_TOPIC }}"

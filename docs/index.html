@@ -108,7 +108,7 @@ header{
 nav{
   background:var(--bg-secondary);
   border-bottom:1px solid var(--border);
-  position:sticky;top:55px;z-index:90;
+  position:sticky;top:53px;z-index:90;
   overflow-x:auto;white-space:nowrap;
   transition:background .3s;
 }
@@ -437,6 +437,62 @@ footer{
 footer a{color:var(--text-secondary)}
 footer a:hover{color:var(--text-primary)}
 
+/* ── Contrôle ────────────────────────────────────────────────────────────── */
+.ctrl-group{display:flex;align-items:center;gap:6px}
+.btn-ctrl{
+  border-radius:20px;padding:4px 12px;font-size:.74rem;font-weight:500;
+  border:1px solid;cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+  white-space:nowrap;font-family:inherit;
+}
+.btn-pause-active{
+  color:var(--text-secondary);border-color:var(--border);background:none;
+}
+.btn-pause-active:hover{border-color:var(--text-secondary);color:var(--text-primary)}
+.btn-paused{
+  color:var(--success);border-color:rgba(52,199,89,.4);background:rgba(52,199,89,.06);
+}
+.btn-paused:hover{background:rgba(52,199,89,.12)}
+.btn-trigger{
+  color:#fff;background:#E8003D;border-color:#E8003D;
+}
+.btn-trigger:hover{background:#c5002f;border-color:#c5002f}
+[data-theme="dark"] .btn-trigger{background:#ff375f;border-color:#ff375f}
+[data-theme="dark"] .btn-trigger:hover{background:#d9284f;border-color:#d9284f}
+.btn-ctrl:disabled{opacity:.4;cursor:default}
+
+/* Barre de configuration token */
+.config-bar{
+  background:var(--bg-secondary);
+  border-bottom:1px solid var(--border);
+  padding:8px 0;
+  transition:background .3s;
+}
+.config-bar-inner{
+  max-width:920px;margin:0 auto;padding:0 20px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.config-bar-label{font-size:.76rem;color:var(--text-secondary);white-space:nowrap}
+.config-token-input{
+  flex:1;min-width:180px;max-width:320px;
+  padding:5px 10px;border:1px solid var(--border);border-radius:6px;
+  background:var(--bg-primary);color:var(--text-primary);
+  font-size:.77rem;transition:border-color .15s;
+}
+.config-token-input:focus{outline:none;border-color:var(--accent)}
+.btn-config-save{
+  background:var(--accent);color:#fff;border:none;
+  border-radius:6px;padding:5px 12px;font-size:.76rem;font-weight:500;
+  cursor:pointer;transition:background .15s;white-space:nowrap;
+}
+.btn-config-save:hover{background:#c5002f}
+.btn-config-clear{
+  background:none;border:1px solid var(--border);color:var(--text-secondary);
+  border-radius:6px;padding:5px 10px;font-size:.76rem;cursor:pointer;
+  transition:border-color .15s,color .15s;white-space:nowrap;
+}
+.btn-config-clear:hover{border-color:var(--text-secondary);color:var(--text-primary)}
+.config-status{font-size:.76rem;color:var(--success);white-space:nowrap}
+
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media(max-width:520px){
   .brand-text h1{font-size:.9rem}
@@ -471,11 +527,27 @@ footer a:hover{color:var(--text-primary)}
       <div class="session-badge" id="session-badge">
         <span id="badge-text">Calcul…</span>
       </div>
+      <div class="ctrl-group" id="ctrl-group">
+        <button class="btn-ctrl btn-pause-active" id="btn-pause" onclick="togglePause()" title="Pause / Reprendre" disabled>⏸ Pause</button>
+        <button class="btn-ctrl btn-trigger" id="btn-trigger" onclick="triggerNow()" title="Lancer maintenant" disabled>⚡ Lancer</button>
+      </div>
       <button class="btn-theme" id="btn-theme" title="Changer le thème" onclick="toggleTheme()">🌙</button>
       <button class="btn-refresh" onclick="loadData()">↻ Actualiser</button>
     </div>
   </div>
 </header>
+
+<!-- ── Barre de configuration token ──────────────────────────────────────── -->
+<div class="config-bar" id="config-bar">
+  <div class="config-bar-inner">
+    <span class="config-bar-label">Contrôle :</span>
+    <input class="config-token-input" type="password" id="token-input"
+           placeholder="GitHub Token (GIST_TOKEN)" autocomplete="off">
+    <button class="btn-config-save" onclick="saveToken()">Enregistrer</button>
+    <span class="config-status" id="config-status" style="display:none">Chargement…</span>
+    <button class="btn-config-clear" id="btn-clear-token" onclick="clearToken()" style="display:none">Effacer le token</button>
+  </div>
+</div>
 
 <!-- ── Navbar ──────────────────────────────────────────────────────────────── -->
 <nav>
@@ -506,9 +578,18 @@ footer a:hover{color:var(--text-primary)}
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────
-const GIST_RAW_URL = "https://gist.githubusercontent.com/ThLsrPro/6ff7e515265e7b6079bb0eff629c6427/raw/f3a57beb68087b45cf3de32efa1fd98b1c2174e0/sessions.json";
-const LS_KEY   = "rnw_cache";
-const LS_THEME = "theme";
+const GIST_RAW_URL = "https://gist.githubusercontent.com/ThLsrPro/6ff7e515265e7b6079bb0eff629c6427/raw/a992612d544b64e9ee20539a4fa98b74e1105528/sessions.json";
+const LS_KEY      = "rnw_cache";
+const LS_THEME    = "theme";
+const LS_TOKEN    = "rnw_gh_token";
+
+// Identifiants GitHub dérivés de l'URL du Gist
+const _gistMatch  = GIST_RAW_URL.match(/gist\.githubusercontent\.com\/([^/]+)\/([^/]+)/);
+const GITHUB_USER = _gistMatch ? _gistMatch[1] : "ThLsrPro";
+const GIST_ID     = _gistMatch ? _gistMatch[2] : "";
+const GITHUB_REPO = "radio-nova-watcher";
+const WORKFLOW_FILE = "radio_watcher.yml";
+const GIST_API    = "https://api.github.com/gists";
 
 // ── Session state ─────────────────────────────────────────────────────────
 let _allSessions = [];
@@ -620,15 +701,237 @@ function skeletonHTML() {
 }
 
 // ── Header badge ──────────────────────────────────────────────────────────
-function updateBadge() {
+let _controlStatus = null; // null = non chargé, "active" ou "paused"
+
+function updateBadge(controlStatus) {
   const badge = document.getElementById("session-badge");
   const text  = document.getElementById("badge-text");
   if (isLiveNow()) {
     badge.classList.add("live");
     badge.innerHTML = `<span class="live-pulse"></span><span>EN DIRECT</span>`;
+  } else if (controlStatus === "paused") {
+    badge.classList.remove("live");
+    badge.style.background = "var(--bg-primary)";
+    badge.style.borderColor = "var(--border)";
+    badge.innerHTML = `<span style="color:var(--text-secondary)">⏸ En pause</span>`;
   } else {
     badge.classList.remove("live");
-    text.textContent = `Dim. ${nextSundayLabel()} · 18h`;
+    badge.style.background = "";
+    badge.style.borderColor = "";
+    badge.innerHTML = `<span style="color:var(--success)">● Actif</span>&nbsp;<span id="badge-text">Dim. ${nextSundayLabel()} · 18h</span>`;
+  }
+}
+
+// ── Gestion du token GitHub ───────────────────────────────────────────────
+function getToken() { return localStorage.getItem(LS_TOKEN) || ""; }
+
+function saveToken() {
+  const val = document.getElementById("token-input").value.trim();
+  if (!val) return;
+  localStorage.setItem(LS_TOKEN, val);
+  document.getElementById("token-input").value = "";
+  initControlUI();
+}
+
+function clearToken() {
+  localStorage.removeItem(LS_TOKEN);
+  _controlStatus = null;
+  initControlUI();
+}
+
+function initControlUI() {
+  const token   = getToken();
+  const bar     = document.getElementById("config-bar");
+  const input   = document.getElementById("token-input");
+  const status  = document.getElementById("config-status");
+  const clrBtn  = document.getElementById("btn-clear-token");
+  const pauseBtn = document.getElementById("btn-pause");
+  const trigBtn  = document.getElementById("btn-trigger");
+
+  if (token) {
+    // Token présent : masquer le champ, afficher statut
+    input.style.display     = "none";
+    document.querySelector(".btn-config-save").style.display = "none";
+    status.style.display    = "inline";
+    clrBtn.style.display    = "inline";
+    // Charger le statut de contrôle
+    loadControlStatus(token);
+  } else {
+    // Pas de token : afficher le champ de saisie
+    input.style.display     = "";
+    document.querySelector(".btn-config-save").style.display = "";
+    status.textContent      = "";
+    status.style.display    = "none";
+    clrBtn.style.display    = "none";
+    if (pauseBtn) { pauseBtn.disabled = true; pauseBtn.textContent = "⏸ Pause"; }
+    if (trigBtn)  trigBtn.disabled = true;
+    updateBadge(null);
+  }
+}
+
+// ── Chargement du statut de contrôle ─────────────────────────────────────
+async function loadControlStatus(token) {
+  const status  = document.getElementById("config-status");
+  const pauseBtn = document.getElementById("btn-pause");
+  const trigBtn  = document.getElementById("btn-trigger");
+  if (status) { status.textContent = "Chargement…"; status.style.color = "var(--text-secondary)"; }
+  if (pauseBtn) pauseBtn.disabled = true;
+  if (trigBtn)  trigBtn.disabled  = true;
+
+  if (!GIST_ID || !token) return;
+  try {
+    const resp = await fetch(`${GIST_API}/${GIST_ID}`, {
+      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json" }
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const gist = await resp.json();
+    const ctrlFile = gist.files["control.json"];
+    let ctrl = { status: "active", manual_trigger: false };
+    if (ctrlFile) {
+      const raw = await fetch(ctrlFile.raw_url + "?t=" + Date.now());
+      if (raw.ok) ctrl = await raw.json();
+    }
+    _controlStatus = ctrl.status || "active";
+    applyControlUI(_controlStatus, ctrl.manual_trigger, token, status, pauseBtn, trigBtn);
+  } catch(e) {
+    if (status) { status.textContent = "Erreur token"; status.style.color = "var(--warning)"; }
+    console.warn("Contrôle Gist inaccessible :", e);
+  }
+}
+
+function applyControlUI(ctrlStatus, manualTrigger, token, statusEl, pauseBtn, trigBtn) {
+  if (statusEl) {
+    statusEl.style.color = "var(--success)";
+    statusEl.textContent = ctrlStatus === "paused" ? "Token configuré · En pause" : "Token configuré";
+  }
+  if (pauseBtn) {
+    pauseBtn.disabled = false;
+    if (ctrlStatus === "paused") {
+      pauseBtn.textContent = "▶ Reprendre";
+      pauseBtn.className   = "btn-ctrl btn-paused";
+    } else {
+      pauseBtn.textContent = "⏸ Pause";
+      pauseBtn.className   = "btn-ctrl btn-pause-active";
+    }
+  }
+  if (trigBtn) trigBtn.disabled = false;
+  updateBadge(ctrlStatus);
+}
+
+// ── Écriture dans control.json du Gist ───────────────────────────────────
+async function patchControl(fields) {
+  const token = getToken();
+  if (!token || !GIST_ID) return false;
+  // Lire l'état actuel
+  let ctrl = { status: "active", manual_trigger: false };
+  try {
+    const resp = await fetch(`${GIST_API}/${GIST_ID}`, {
+      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json" }
+    });
+    if (resp.ok) {
+      const gist = await resp.json();
+      const ctrlFile = gist.files["control.json"];
+      if (ctrlFile) {
+        const raw = await fetch(ctrlFile.raw_url + "?t=" + Date.now());
+        if (raw.ok) ctrl = await raw.json();
+      }
+    }
+  } catch(_) {}
+  // Appliquer les modifications
+  Object.assign(ctrl, fields, {
+    updated_at: new Date().toISOString().slice(0,19),
+    updated_by: "dashboard",
+  });
+  // Pousser
+  try {
+    const patch = await fetch(`${GIST_API}/${GIST_ID}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ files: { "control.json": { content: JSON.stringify(ctrl, null, 2) } } }),
+    });
+    return patch.ok;
+  } catch(_) { return false; }
+}
+
+// ── Bouton Pause / Reprendre ──────────────────────────────────────────────
+async function togglePause() {
+  const isPaused = _controlStatus === "paused";
+  const msg = isPaused
+    ? "Reprendre la surveillance ?"
+    : "Désactiver la surveillance du prochain dimanche ?";
+  if (!confirm(msg)) return;
+
+  const pauseBtn = document.getElementById("btn-pause");
+  const trigBtn  = document.getElementById("btn-trigger");
+  if (pauseBtn) pauseBtn.disabled = true;
+  if (trigBtn)  trigBtn.disabled  = true;
+
+  const newStatus = isPaused ? "active" : "paused";
+  const ok = await patchControl({ status: newStatus });
+  if (ok) {
+    _controlStatus = newStatus;
+    applyControlUI(
+      newStatus, false, getToken(),
+      document.getElementById("config-status"),
+      pauseBtn, trigBtn
+    );
+  } else {
+    alert("Erreur lors de la mise à jour. Vérifiez votre token.");
+    if (pauseBtn) pauseBtn.disabled = false;
+    if (trigBtn)  trigBtn.disabled  = false;
+  }
+}
+
+// ── Bouton Lancer maintenant ──────────────────────────────────────────────
+async function triggerNow() {
+  if (!confirm("Lancer la surveillance immédiatement via GitHub Actions ?")) return;
+
+  const trigBtn = document.getElementById("btn-trigger");
+  if (trigBtn) { trigBtn.disabled = true; trigBtn.textContent = "⏳ Envoi…"; }
+
+  // 1. Poser manual_trigger=true + remettre status=active dans le Gist
+  const gistOk = await patchControl({ status: "active", manual_trigger: true });
+
+  // 2. Déclencher le workflow GitHub Actions
+  const token = getToken();
+  let dispatchOk = false;
+  if (token) {
+    try {
+      const r = await fetch(
+        `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: "application/vnd.github.v3+json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ ref: "main" }),
+        }
+      );
+      dispatchOk = r.status === 204;
+    } catch(_) {}
+  }
+
+  if (gistOk && dispatchOk) {
+    alert("Surveillance lancée ! Le workflow GitHub Actions démarre.");
+    _controlStatus = "active";
+    applyControlUI(
+      "active", true, token,
+      document.getElementById("config-status"),
+      document.getElementById("btn-pause"),
+      trigBtn
+    );
+  } else if (gistOk) {
+    alert("Gist mis à jour, mais le déclenchement du workflow a échoué.\nLancez manuellement via l'onglet Actions de GitHub.");
+    if (trigBtn) { trigBtn.disabled = false; trigBtn.textContent = "⚡ Lancer"; }
+  } else {
+    alert("Erreur lors de la mise à jour. Vérifiez votre token.");
+    if (trigBtn) { trigBtn.disabled = false; trigBtn.textContent = "⚡ Lancer"; }
   }
 }
 
@@ -642,7 +945,7 @@ function render(data) {
   _trCursor    = 0;
   _trShown     = TR_PAGE;
 
-  updateBadge();
+  updateBadge(_controlStatus);
   const totalDet = _allSessions.reduce((s,x) => s + (x.detections||[]).length, 0);
   const totalH   = _allSessions.reduce((s,x) => s + (x.duration_minutes||0), 0) / 60;
   const totalCh  = _allSessions.reduce((s,x) => s + (x.chunks_processed||0), 0);
@@ -1146,6 +1449,7 @@ function finish(data, fromCache) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
+initControlUI();
 loadData();
 </script>
 </body>

@@ -9,6 +9,60 @@ Conçu pour tourner chaque dimanche en automatique sur **GitHub Actions**.
 
 ---
 
+## Contrôle manuel
+
+Le watcher peut être mis en pause ou déclenché manuellement sans toucher au code.
+Le mécanisme repose sur un fichier `control.json` stocké dans le Gist privé.
+
+### Via le dashboard
+
+1. Ouvrir le dashboard GitHub Pages
+2. Dans la barre "Contrôle", saisir votre `GIST_TOKEN` et cliquer **Enregistrer**
+   (le token est stocké uniquement dans `localStorage`, jamais transmis ailleurs)
+3. **Mettre en pause** : cliquer "⏸ Pause" — la surveillance dominicale sera annulée
+4. **Reprendre** : cliquer "▶ Reprendre" — la surveillance reprend normalement
+5. **Lancer maintenant** : cliquer "⚡ Lancer" — déclenche immédiatement le workflow
+   GitHub Actions via l'API (nécessite que le token ait le scope `workflow`)
+
+### Via le terminal (scripts/trigger.py)
+
+```bash
+source venv/bin/activate
+
+# Afficher le statut actuel
+python scripts/trigger.py --status
+
+# Mettre en pause
+python scripts/trigger.py --pause
+
+# Reprendre
+python scripts/trigger.py --resume
+
+# Déclencher manuellement (pose manual_trigger=true dans le Gist)
+python scripts/trigger.py --start
+# Puis déclencher le workflow via l'onglet Actions de GitHub
+```
+
+### Fonctionnement de control.json
+
+Fichier JSON stocké dans le Gist sous le nom `control.json` :
+
+```json
+{
+  "status": "active",        // "active" ou "paused"
+  "manual_trigger": false,   // true = lancer même si en pause
+  "updated_at": "2026-04-20T18:00:00",
+  "updated_by": "dashboard"  // "dashboard" ou "script"
+}
+```
+
+Logique au démarrage de `main.py` :
+- `status == "paused"` ET `manual_trigger == false` → notification ntfy + arrêt propre
+- `manual_trigger == true` → reset à false dans le Gist → surveillance normale
+- `status == "active"` → surveillance normale
+
+---
+
 ## Prérequis système (exécution locale)
 
 | Outil | Version minimale | Installation |

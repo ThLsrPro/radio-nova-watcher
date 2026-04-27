@@ -29,6 +29,7 @@ GIST_API             = "https://api.github.com/gists"
 GIST_DESCRIPTION     = "radio-nova-watcher-data"
 PERIODIC_SAVE_INTERVAL = 120   # 2 minutes entre les sauvegardes automatiques
 MAX_SESSIONS         = 10      # nombre maximum de sessions conservées dans le Gist
+CONTROL_FILE         = "control.json"
 
 
 # ── Structures de données ─────────────────────────────────────────────────
@@ -364,6 +365,75 @@ class GistArchiver:
             "total_hours":      round(total_hours, 1),
             "sessions_summary": summaries,
         }
+
+    # ── Contrôle marche/pause ─────────────────────────────────────────────────
+
+    def get_control(self) -> dict:
+        """
+        Lit control.json depuis le Gist.
+        Retourne les valeurs par défaut si le fichier n'existe pas encore.
+        """
+        default = {"status": "active", "manual_trigger": False}
+        if not self._enabled or not self._gist_id:
+            return default
+        try:
+            resp = requests.get(
+                f"{GIST_API}/{self._gist_id}",
+                headers=self._headers,
+                timeout=10,
+            )
+            resp.raise_for_status()
+            files = resp.json().get("files", {})
+            if CONTROL_FILE not in files:
+                return default
+            raw_url = files[CONTROL_FILE]["raw_url"]
+            content_resp = requests.get(raw_url, timeout=10)
+            content_resp.raise_for_status()
+            data = content_resp.json()
+            return {
+                "status":         data.get("status", "active"),
+                "manual_trigger": bool(data.get("manual_trigger", False)),
+                "updated_at":     data.get("updated_at", ""),
+                "updated_by":     data.get("updated_by", ""),
+            }
+        except Exception as exc:
+            logger.warning(f"Impossible de lire control.json depuis le Gist : {exc}")
+            return default
+
+    def set_control(self, status: str = None, manual_trigger: bool = None) -> None:
+        """
+        Met à jour uniquement les champs fournis dans control.json du Gist.
+        Recharge l'état actuel avant d'écrire pour éviter les conflits.
+        """
+        if not self._enabled or not self._gist_id:
+            return
+        current = self.get_control()
+        if status is not None:
+            current["status"] = status
+        if manual_trigger is not None:
+            current["manual_trigger"] = manual_trigger
+        current["updated_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        current["updated_by"] = "script"
+
+        payload = {
+            "files": {
+                CONTROL_FILE: {"content": json.dumps(current, indent=2, ensure_ascii=False)}
+            }
+        }
+        try:
+            resp = requests.patch(
+                f"{GIST_API}/{self._gist_id}",
+                headers=self._headers,
+                data=json.dumps(payload),
+                timeout=10,
+            )
+            resp.raise_for_status()
+            logger.info(
+                f"control.json mis à jour : status={current['status']}, "
+                f"manual_trigger={current['manual_trigger']}"
+            )
+        except Exception as exc:
+            logger.warning(f"Impossible de mettre à jour control.json : {exc}")
 
     # ── Propriétés ────────────────────────────────────────────────────────
 

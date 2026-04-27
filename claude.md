@@ -15,13 +15,14 @@
 | `transcriber.py` | Groq whisper-large-v3 |
 | `detector.py` | regex 3 niveaux + contexte multi-chunks |
 | `notifier.py` | ntfy.sh HTTP POST |
-| `archiver.py` | sessions → GitHub Gist privé |
+| `archiver.py` | sessions → GitHub Gist privé + get_control/set_control |
 | `quota_monitor.py` | quotas Groq jour/mois |
 | `healthcheck.py` | check autonome samedi |
 | `config.py` | chargement .env |
 | `docs/index.html` | dashboard GitHub Pages (HTML/CSS/JS inline) |
 | `docs/generate_dashboard.py` | injecte URL Gist dans index.html |
 | `scripts/optimize_context.py` | analyse CLAUDE.md + optimisation tokens |
+| `scripts/trigger.py` | CLI contrôle marche/pause (--status/--pause/--resume/--start) |
 
 ### Variables d'environnement
 - `GROQ_API_KEY` — clé Groq
@@ -40,12 +41,16 @@
 - **detector** : `add_transcript()` appelé APRÈS `analyze()` (chunk courant → buffer itération suivante)
 - **CI** : `CI=true` → `quota_monitor` skip I/O fichier (filesystem éphémère Actions)
 - **Gist** : `MAX_SESSIONS=10` — les 10 sessions les plus récentes conservées
+- **control.json** : fichier Gist `{"status":"active|paused","manual_trigger":false}` — lu au démarrage de main.py avant `start_session()`
 
 ### Comportements clés
 - Watchdog : alerte ntfy si aucun chunk depuis 120s, backoff exponentiel 10/20/40/80/160s
 - Detector : buffer `deque(3)`, mode alerte partielle si confidence 50-84 (seuil → 60 sur 3 chunks suivants)
 - Archiver : sauvegarde périodique 2min, `start_session()` reprend session du jour si elle existe
 - `healthcheck.py` : exit(0) OK / exit(1) erreur — workflow samedi 16h00 UTC
+- Contrôle : `main.py` lit `control.json` au démarrage ; paused+!manual_trigger → notification + exit(0) ; manual_trigger → reset flag + continue
+- Workflow `watch` : schedule uniquement — a un step "check-control" qui pose `should_run` en output ; step de surveillance conditionnel à `should_run==true`
+- Workflow `manual_trigger` : workflow_dispatch uniquement — force `manual_trigger=true` puis lance `main.py`
 
 ### Conventions
 - Code commenté en français, type hints partout
@@ -59,6 +64,10 @@ python main.py
 python main.py --test-notification
 python healthcheck.py
 python scripts/optimize_context.py
+python scripts/trigger.py --status
+python scripts/trigger.py --pause
+python scripts/trigger.py --resume
+python scripts/trigger.py --start
 python -c "from archiver import test_accumulation; test_accumulation()"
 ```
 
